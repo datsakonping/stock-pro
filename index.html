@@ -154,7 +154,6 @@ aside{display:grid;gap:24px}
 button.row:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .row>span{padding:9px 10px;display:block;min-width:0}
 .d{font-size:.92rem;color:var(--muted)}
-.d .y{display:none}
 .m-date{display:none}
 .nm{display:block;font-weight:500;overflow-wrap:anywhere}
 .ct{display:block;font-size:.84rem;color:var(--muted)}
@@ -320,10 +319,11 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     <section id="tab-list" aria-label="รายการบัญชี">
       <button id="insightBar" class="insight" type="button" hidden></button>
     <div class="tools">
-      <input id="q" type="search" placeholder="ค้นหารายการ" aria-label="ค้นหารายการ">
+      <input id="q" type="search" placeholder="ค้นหาทุกเดือน เช่น ลงทุน" aria-label="ค้นหารายการ">
       <select id="fcat" aria-label="กรองตามหมวด"></select>
     </div>
     <div id="notice" class="notice" hidden></div>
+    <p id="searchSum" class="bud-sum" hidden></p>
     <div class="page">
       <div class="cols" aria-hidden="true">
         <span>วันที่</span><span>รายการ</span><span class="n">รับ</span><span class="n">จ่าย</span><span class="n">คงเหลือ</span>
@@ -547,9 +547,16 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
   function renderRows(balMap, open){
     const q = S.q.trim().toLowerCase();
-    const list = sorted().filter(e => inMonth(e,S.ym)).reverse().filter(e =>
+    const list = sorted().filter(e => q || inMonth(e,S.ym)).reverse().filter(e =>
       (!S.cat || e.category === S.cat) &&
       (!q || `${e.note||''} ${e.category}`.toLowerCase().includes(q)));
+    const sum = $('searchSum');
+    sum.hidden = !(q || S.cat);
+    if (q || S.cat) {
+      let rin = 0, rout = 0;
+      for (const e of list) { if (e.type === 'income') rin += satang(e); else rout += satang(e); }
+      sum.innerHTML = `พบ <b>${list.length}</b> รายการ${q ? 'จากทุกเดือน' : 'ในเดือนนี้'} · จ่าย <b class="fig">${money(rout)}</b> · รับ <b class="fig">${money(rin)}</b>`;
+    }
     if (!list.length && !q && !S.cat) {
       $('rows').innerHTML = `<div class="empty-state"><strong>ยังไม่มีรายการใน${esc(monthName(S.ym))}</strong>กดปุ่มเพิ่มรายการเพื่อเริ่มจด</div>`;
       return;
@@ -559,13 +566,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       return;
     }
     const html = list.map(e => {
-      const day = +e.date.slice(8), m = +e.date.slice(5,7), y = String(be(e.date.slice(0,4))).slice(2);
+      const day = +e.date.slice(8), m = +e.date.slice(5,7), y = q ? ' ' + String(be(e.date.slice(0,4))).slice(2) : '';
       const isIn = e.type === 'income', amt = money(satang(e));
       const title = e.note || e.category;
       const sub = e.note ? e.category : (isIn ? 'รายรับ' : 'รายจ่าย');
       return `<button type="button" class="row" data-id="${esc(e.id)}" aria-label="แก้ไข ${esc(title)} ${amt} บาท">
-        <span class="d">${day} ${MON[m-1]}<span class="y"> ${y}</span></span>
-        <span class="it"><span class="nm">${esc(title)}</span><span class="ct"><span class="m-date">${day} ${MON[m-1]} · </span>${esc(sub)}${e.id.startsWith('rc-')?'<span class="tag">ประจำ</span>':''}</span></span>
+        <span class="d">${day} ${MON[m-1]}${y}</span>
+        <span class="it"><span class="nm">${esc(title)}</span><span class="ct"><span class="m-date">${day} ${MON[m-1]}${y} · </span>${esc(sub)}${e.id.startsWith('rc-')?'<span class="tag">ประจำ</span>':''}</span></span>
         <span class="num in${isIn?'':' void'}">${isIn?'+'+amt:''}</span>
         <span class="num out${isIn?' void':''}">${isIn?'':'−'+amt}</span>
         <span class="num bal">${money(balMap.get(e.id)||0)}</span>
