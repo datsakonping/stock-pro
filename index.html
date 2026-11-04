@@ -319,7 +319,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     <section id="tab-list" aria-label="รายการบัญชี">
       <button id="insightBar" class="insight" type="button" hidden></button>
     <div class="tools">
-      <input id="q" type="search" placeholder="ค้นหาทุกเดือน เช่น ลงทุน" aria-label="ค้นหารายการ">
+      <input id="q" type="search" placeholder="ค้นหาทุกเดือน" aria-label="ค้นหารายการ">
       <select id="fcat" aria-label="กรองตามหมวด"></select>
     </div>
     <div id="notice" class="notice" hidden></div>
@@ -1152,7 +1152,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   $('budget').onclick = e => { const b = e.target.closest('.bud'); if (!b) return; S.cat = b.dataset.cat; S.q = ''; $('q').value = ''; setTab('list'); render(); };
   document.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); };
   $('trend').onclick = e => { const ym = e.target.dataset?.ym; if (ym) goMonth(ym); };
-  $('trend').onpointermove = e => { const ym = e.target.dataset?.ym; if (ym && ym !== hoverYm) { hoverYm = ym; readout(ym); } };
+  $('trend').onpointermove = e => { if (e.pointerType !== 'mouse') return; const ym = e.target.dataset?.ym; if (ym && ym !== hoverYm) { hoverYm = ym; readout(ym); } };
   $('trend').onpointerleave = () => { hoverYm = null; readout(S.ym); };
   $('tExpense').onclick = () => { setType('expense'); applySuggestion(); clearWarn(); };
   $('tIncome').onclick = () => { setType('income'); applySuggestion(); clearWarn(); };
