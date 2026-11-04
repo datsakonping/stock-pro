@@ -91,6 +91,25 @@ h1 svg{flex:none;border-radius:7px}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 .add{display:none}
+.ai-pane{gap:12px}
+.ai-log{display:grid;gap:10px;min-width:0}
+.msg{max-width:88%;padding:9px 12px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;justify-self:start;background:var(--sheet);border:1px solid var(--line)}
+.msg.me{justify-self:end;background:var(--accent);color:var(--accent-fg);border-color:transparent}
+.msg.wait{color:var(--muted)}
+.msg.bad{color:var(--out)}
+.prop{display:grid;gap:6px;width:min(100%,420px);justify-self:start;padding:10px 12px;border-radius:10px;background:var(--sheet);border:1px solid var(--line)}
+.prop-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.prop-row .fig{white-space:nowrap;font-size:.92rem}
+.prop-row .fig.in{color:var(--in)}
+.prop-row .fig.out{color:var(--out)}
+.prop-x{width:36px;height:36px;background:none;border:0;color:var(--muted);font-size:1.2rem}
+.ai-chips{display:flex;flex-wrap:wrap;gap:6px}
+.ai-chips button{min-height:36px;padding:4px 12px;background:none;border:1px solid var(--line);border-radius:18px;font-size:.88rem;color:var(--ink)}
+.ai-chips button:hover{border-color:var(--accent);color:var(--accent)}
+.ai-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.ai-form input{height:46px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);padding:0 12px;color:var(--ink);min-width:0;width:100%;font-size:1rem}
+.ai-form .primary{height:46px;padding:0 18px;flex:none}
+.ai-note{font-size:.82rem}
 .sum-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;margin:0 0 10px}
 .sum-grid dt{font-size:.84rem;color:var(--muted)}
 .sum-grid dd{margin:0;font-size:1.12rem;font-weight:500;overflow-wrap:anywhere}
@@ -220,6 +239,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   .tabs button[aria-current="page"]{border:0}
   .add{display:grid;place-items:center;position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:15;width:56px;height:56px;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 6px 16px rgba(20,48,107,.3)}
   .add svg{width:26px;height:26px}
+  body[data-tab="ai"] .add{display:none}
+  .ai-form{position:sticky;bottom:calc(68px + env(safe-area-inset-bottom,0px));background:var(--paper);padding-block:6px}
   .slip{position:fixed;left:0;right:0;bottom:0;z-index:30;max-height:90%;overflow:auto;border-radius:12px 12px 0 0;border-width:1px 0 0;box-shadow:var(--shadow);
     padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
     transform:translateY(105%);visibility:hidden;transition:transform .18s ease-out,visibility 0s .18s}
@@ -282,6 +303,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     <nav class="tabs" aria-label="เมนูหลัก">
       <button type="button" data-tab="list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg><span>รายการ</span></button>
       <button type="button" data-tab="budget"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v9l6.4 6.4"></path></svg><span>งบ</span></button>
+      <button type="button" data-tab="ai"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg><span>ผู้ช่วย</span></button>
       <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-6M12 20V5M19 20v-9"></path></svg><span>สรุป</span></button>
     </nav>
     <section id="tab-list" aria-label="รายการบัญชี">
@@ -320,6 +342,15 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       <h2 id="recurH">รายการประจำ</h2>
       <div id="recurList"></div>
     </section>
+    </div>
+    <div id="tab-ai" class="pane ai-pane" hidden>
+      <div id="aiLog" class="ai-log" aria-live="polite"></div>
+      <div id="aiChips" class="ai-chips"></div>
+      <form id="aiForm" class="ai-form" novalidate>
+        <input id="aiText" maxlength="500" autocomplete="off" placeholder="พิมพ์ เช่น กินข้าว 80 เติมน้ำมัน 500" aria-label="ข้อความถึงผู้ช่วย">
+        <button id="aiSend" class="primary" type="submit">ส่ง</button>
+      </form>
+      <p class="muted ai-note">ข้อความที่พิมพ์และยอดสรุปรายหมวดจะถูกส่งไปที่ Groq โดยไม่ส่งรายละเอียดของแต่ละรายการ ตรวจคำตอบก่อนใช้เสมอ</p>
     </div>
     <div id="tab-summary" class="pane" hidden>
       <section class="chart" aria-labelledby="sumH">
@@ -460,7 +491,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const money = s => { const a = Math.abs(s)/100; const t = a.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (s<0?'−':'') + t; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'' };
+  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'', ai:[], aiBusy:false };
   let delTimer = null, toastTimer = null, hoverYm = null, stopTimer = null, canPersist = true, budgets = { map:{}, updatedAt:0 }, recurring = [];
 
   const sorted = () => [...S.entries].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt||0)-(b.createdAt||0));
@@ -577,9 +608,79 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.i-t.o)}</td></tr>`;
     }).join('');
   }
+  const AI_SUGGEST = ['เดือนนี้จ่ายอะไรเยอะสุด', 'เดือนนี้เหลือใช้เท่าไหร่', 'ลดค่าใช้จ่ายตรงไหนดี'];
+  function renderAi(){
+    const log = $('aiLog');
+    const msgs = S.ai.length ? S.ai : [{ who:'bot', text:'สวัสดีครับ บอกรายการที่อยากจด หรือถามเรื่องเงินของคุณได้เลย' }];
+    log.innerHTML = msgs.map((m,i) => {
+      if (m.proposal) {
+        const rows = m.proposal.map((e,j) => { const isIn = e.type === 'income', amt = money(Math.round(e.amount*100)); return `<div class="prop-row"><span class="it"><span class="nm">${esc(e.note || e.category)}</span><span class="ct">${esc(e.category)} · ${+e.date.slice(8)} ${MON[+e.date.slice(5,7)-1]}</span></span><span class="fig ${isIn?'in':'out'}">${isIn?'+':'−'}${amt}</span><button type="button" class="prop-x" data-drop="${i}:${j}" aria-label="เอารายการนี้ออก">×</button></div>`; }).join('');
+        return `<div class="prop">${rows}${m.proposal.length ? `<div class="data-actions"><button type="button" class="ghost" data-save="${i}">บันทึก ${m.proposal.length} รายการ</button><button type="button" class="ghost" data-cancel="${i}">ยกเลิก</button></div>` : ''}</div>`;
+      }
+      return `<div class="msg${m.who==='me'?' me':''}${m.wait?' wait':''}${m.bad?' bad':''}">${esc(m.text)}</div>`;
+    }).join('');
+    $('aiChips').innerHTML = S.ai.length ? '' : AI_SUGGEST.map(t => `<button type="button" data-ask="${esc(t)}">${esc(t)}</button>`).join('');
+    $('aiSend').disabled = S.aiBusy;
+    if (S.tab === 'ai' && S.ai.length) $('aiForm').scrollIntoView({block:'nearest'});
+  }
+  function allCategories(){
+    const used = S.entries.map(e => e.category);
+    return [...new Set([...CATS.expense, ...CATS.income, ...used, ...Object.keys(budgets.map)])];
+  }
+  function aiContext(){
+    let balance = 0; for (const e of S.entries) balance += signed(e);
+    const months = Array.from({length:3},(_,n) => shiftYm(currentYm(),-n)).map(ym => {
+      const t = totals(ym), byCategory = {};
+      for (const e of S.entries) if (inMonth(e,ym) && e.type==='expense') byCategory[e.category] = (byCategory[e.category]||0) + Number(e.amount);
+      for (const k of Object.keys(byCategory)) byCategory[k] = Math.round(byCategory[k]*100)/100;
+      return { month:ym, income:t.i/100, expense:t.o/100, expenseByCategory:byCategory };
+    });
+    return { balance:balance/100, months, monthlyBudgets:budgets.map, recurringCount:recurring.length };
+  }
+  function cleanProposal(list){
+    const cats = new Set(allCategories()), out = [];
+    for (const e of Array.isArray(list) ? list : []) {
+      const amount = Math.round(Number(e?.amount)*100)/100;
+      if (!(amount > 0) || amount >= 1e12) continue;
+      const type = e.type === 'income' ? 'income' : 'expense';
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(e.date||'') && !Number.isNaN(Date.parse(e.date)) ? e.date : todayStr();
+      out.push({ type, amount, category:cats.has(e.category) ? e.category : 'อื่นๆ', note:String(e.note||'').slice(0,120), date });
+    }
+    return out;
+  }
+  const AI_ERRORS = { offline:'ติดต่อผู้ช่วยไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่', not_found:'ต้องอัปเดต worker.js ใน Cloudflare ก่อน', missing_ai_key:'ยังไม่ได้ตั้ง GROQ_API_KEY ใน Cloudflare',
+    ai_bad_key:'GROQ_API_KEY ไม่ถูกต้อง ตรวจค่าใน Cloudflare', ai_busy:'Groq มีการใช้งานเต็มชั่วคราว รอสักครู่แล้วลองใหม่', auth:'รหัสซิงก์ไม่ถูกต้อง เปิดตั้งค่าเพื่อตรวจสอบ' };
+  async function askAi(text){
+    if (S.aiBusy || !text) return;
+    S.ai.push({ who:'me', text });
+    if (!cloud) { S.ai.push({ who:'bot', bad:true, text:'ผู้ช่วยต้องเชื่อม Cloud ก่อน เปิดเฟืองตั้งค่าเพื่อเชื่อมต่อ' }); renderAi(); return; }
+    const history = S.ai.filter(m => m.text && !m.wait && !m.bad).slice(-7,-1).map(m => ({ role:m.who==='me'?'user':'assistant', content:m.text }));
+    const wait = { who:'bot', wait:true, text:'กำลังคิด…' };
+    S.ai.push(wait); S.aiBusy = true; renderAi();
+    let reply;
+    try {
+      const r = await post('/ai', { text, today:todayStr(), categories:allCategories(), context:aiContext(), history }, 35000);
+      if (r.action === 'add') { const p = cleanProposal(r.entries); reply = p.length ? { who:'bot', proposal:p } : { who:'bot', bad:true, text:'อ่านรายการไม่ออก ลองบอกชื่อและจำนวนเงินอีกครั้ง' }; }
+      else reply = { who:'bot', text:r.text || 'ไม่มีคำตอบ ลองถามใหม่อีกครั้ง' };
+    } catch (e) {
+      reply = { who:'bot', bad:true, text:e?.code === 'ai_limit' ? `ใช้ครบ ${e.limit} ครั้งของวันนี้แล้ว พรุ่งนี้ใช้ต่อได้` : (AI_ERRORS[e?.code] || 'ผู้ช่วยตอบไม่สำเร็จ ลองใหม่อีกครั้ง') };
+    }
+    S.ai.splice(S.ai.indexOf(wait), 1, reply); S.aiBusy = false; renderAi();
+  }
+  function saveProposal(i){
+    const m = S.ai[i]; if (!m?.proposal) return;
+    const count = m.proposal.length;
+    try {
+      m.proposal.forEach((e,n) => store.set(newId(), { ...e, createdAt:Date.now()+n }));
+      S.ai[i] = { who:'bot', text:`บันทึก ${count} รายการแล้ว` };
+    } catch { toast('บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม'); return; }
+    render(); renderAi();
+  }
   function setTab(t){
     S.tab = t;
-    for (const [k,id] of [['budget','tab-budget'],['summary','tab-summary'],['list','tab-list']]) $(id).hidden = k !== t;
+    for (const [k,id] of [['budget','tab-budget'],['summary','tab-summary'],['list','tab-list'],['ai','tab-ai']]) $(id).hidden = k !== t;
+    document.body.dataset.tab = t;
+    if (t === 'ai') renderAi();
     document.querySelectorAll('.tabs [data-tab]').forEach(b => { if (b.dataset.tab === t) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
     try { localStorage.setItem('ledger-tab-v1', t); } catch {}
     scrollTo(0,0);
@@ -861,6 +962,14 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   $('openSettings').onclick = () => { closeSlip(); $('settings').hidden = false; $('scrim').hidden = false; $('closeSettings').focus(); };
   const closeSettings = () => { if ($('settings').hidden) return; $('settings').hidden = true; $('scrim').hidden = true; $('openSettings').focus(); };
   $('closeSettings').onclick = closeSettings;
+  $('aiForm').onsubmit = e => { e.preventDefault(); const t = $('aiText').value.trim(); $('aiText').value = ''; askAi(t); };
+  $('aiChips').onclick = e => { const b = e.target.closest('[data-ask]'); if (b) askAi(b.dataset.ask); };
+  $('aiLog').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.save) saveProposal(+b.dataset.save);
+    else if (b.dataset.cancel) { S.ai[+b.dataset.cancel] = { who:'bot', text:'ยกเลิกแล้ว' }; renderAi(); }
+    else if (b.dataset.drop) { const [i,j] = b.dataset.drop.split(':').map(Number); S.ai[i].proposal.splice(j,1); if (!S.ai[i].proposal.length) S.ai[i] = { who:'bot', text:'ยกเลิกแล้ว' }; renderAi(); }
+  };
   $('bEdit').onclick = openBudget;
   $('bCancel').onclick = () => { S.editBudget = false; renderBudget(); };
   $('budgetForm').onsubmit = saveBudgetForm;
@@ -965,15 +1074,15 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
   /* ---------- cloud sync: last change wins, per entry ---------- */
   function queueSync(){ if (!cloud) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, 800); }
-  async function post(path, body){
+  async function post(path, body, timeout = 20000){
     let res;
     try {
       res = await fetch(cloud.url + path, { method:'POST', headers:{ 'content-type':'application/json', authorization:'Bearer ' + cloud.key },
-        body:JSON.stringify(body), signal:AbortSignal.timeout(20000) });
+        body:JSON.stringify(body), signal:AbortSignal.timeout(timeout) });
     } catch { throw {code:'offline'}; }
     if (res.status === 401) throw {code:'auth'};
     if (res.status === 404) throw {code:'not_found'};
-    if (!res.ok) { let c = ''; try { c = (await res.json()).error; } catch {} throw {code:c || 'server'}; }
+    if (!res.ok) { let c = '', extra = {}; try { extra = await res.json(); c = extra.error; } catch {} throw {...extra, code:c || 'server'}; }
     return res.json();
   }
   function applyRows(rows){
@@ -1093,7 +1202,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   resetSlip();
   render();
   let savedTab = 'list'; try { savedTab = localStorage.getItem('ledger-tab-v1') || 'list'; } catch {}
-  setTab(['list','budget','summary'].includes(savedTab) ? savedTab : 'list');
+  setTab(['list','budget','summary','ai'].includes(savedTab) ? savedTab : 'list');
   refresh();
 })();
 </script>
