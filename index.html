@@ -200,6 +200,11 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 .fill.b-ok{background:var(--accent)}
 .fill.b-near{background:var(--amber)}
 .fill.b-over{background:var(--out)}
+.fill.b-done{background:var(--in)}
+.goal{display:grid;gap:3px;padding:8px 0;border-bottom:1px solid var(--line)}
+.goal-actions{display:flex;gap:6px;margin-top:4px}
+.goal-actions .ghost{height:36px;padding:0 10px;font-size:.88rem}
+.cloud select{height:42px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);padding:0 10px;color:var(--ink);width:100%;min-width:0;font-size:1rem}
 .bud-note{font-size:.84rem;color:var(--muted)}
 .bud-note.over{color:var(--out);font-weight:500}
 .slip .check{display:flex;align-items:center;gap:8px;font-size:.92rem;color:var(--ink)}
@@ -350,6 +355,28 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       </form>
     </section>
 
+    <section class="chart" aria-labelledby="goalH">
+      <div class="head-row">
+        <h2 id="goalH">เป้าหมายการออม</h2>
+        <button id="gAdd" class="ghost" type="button">เพิ่มเป้าหมาย</button>
+      </div>
+      <div id="goalList"></div>
+      <form id="goalForm" class="cloud" novalidate hidden>
+        <label>ชื่อเป้าหมาย<input id="gName" maxlength="40" autocomplete="off" placeholder="เช่น กองทุนฉุกเฉิน"></label>
+        <label>เงินเป้าหมาย (บาท)<input id="gTarget" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>
+        <label>วันเป้าหมาย<input id="gDate" type="date"></label>
+        <label>มีอยู่แล้ว (บาท)<input id="gStart" inputmode="decimal" autocomplete="off" placeholder="0.00"></label>
+        <label>นับจากรายการในหมวด
+          <select id="gSource"><option value="save">เงินออม</option><option value="invest">ลงทุน</option><option value="both">เงินออมและลงทุน</option></select>
+        </label>
+        <p id="gErr" class="err" role="alert" hidden></p>
+        <div class="data-actions">
+          <button id="gSave" class="ghost" type="submit">บันทึกเป้าหมาย</button>
+          <button id="gCancel" class="ghost" type="button">ยกเลิก</button>
+        </div>
+      </form>
+    </section>
+
     <section class="chart" aria-labelledby="recurH">
       <h2 id="recurH">รายการประจำ</h2>
       <div id="recurList"></div>
@@ -362,7 +389,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         <input id="aiText" maxlength="500" autocomplete="off" placeholder="พิมพ์ เช่น กินข้าว 80 เติมน้ำมัน 500" aria-label="ข้อความถึงผู้ช่วย">
         <button id="aiSend" class="primary" type="submit">ส่ง</button>
       </form>
-      <p class="muted ai-note">ข้อความที่พิมพ์และยอดสรุปรายหมวดจะถูกส่งไปที่ Groq โดยไม่ส่งรายละเอียดของแต่ละรายการ ตรวจคำตอบก่อนใช้เสมอ</p>
+      <p class="muted ai-note">ข้อความที่พิมพ์และยอดสรุปจะถูกส่งไปที่ Groq โดยไม่ส่งรายละเอียดของแต่ละรายการ คำแนะนำเป็นข้อมูลทั่วไป ตรวจก่อนใช้เสมอ</p>
     </div>
     <div id="tab-summary" class="pane" hidden>
       <section class="chart" aria-labelledby="sumH">
@@ -372,8 +399,10 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
           <div><dt>คงเหลือ</dt><dd id="sEnd" class="fig">0.00</dd></div>
           <div><dt>รับ</dt><dd id="sIn" class="fig">0.00</dd></div>
           <div><dt>จ่าย</dt><dd id="sOut" class="fig">0.00</dd></div>
+          <div><dt>เงินออม</dt><dd id="sSav" class="fig">0.00</dd></div>
           <div><dt>ลงทุน</dt><dd id="sInv" class="fig">0.00</dd></div>
           <div><dt>เงินเปลี่ยนแปลงสุทธิ</dt><dd id="sNet" class="fig">0.00</dd></div>
+          <div><dt>ออมและลงทุนต่อรายรับ</dt><dd id="sRate" class="fig">-</dd></div>
         </dl>
         <p id="sCompare" class="muted"></p>
       </section>
@@ -392,7 +421,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     </section>
       <section class="chart" aria-labelledby="tblH">
         <h2 id="tblH">ตัวเลขรายเดือน</h2>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">เดือน</th><th scope="col">รับ</th><th scope="col">จ่าย</th><th scope="col">ลงทุน</th></tr></thead><tbody id="sTable"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">เดือน</th><th scope="col">รับ</th><th scope="col">จ่าย</th><th scope="col">ออม/ลงทุน</th></tr></thead><tbody id="sTable"></tbody></table></div>
       </section>
     </div>
   </div>
@@ -511,16 +540,18 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const money = s => { const a = Math.abs(s)/100; const t = a.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (s<0?'−':'') + t; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'', ai:[], aiBusy:false, catTouched:false, warnKey:'' };
-  let delTimer = null, toastTimer = null, hoverYm = null, stopTimer = null, canPersist = true, budgets = { map:{}, updatedAt:0 }, recurring = [];
+  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'', ai:[], aiBusy:false, catTouched:false, warnKey:'', goalForm:false, goalEdit:null, confirmGoal:null };
+  let delTimer = null, toastTimer = null, hoverYm = null, stopTimer = null, canPersist = true, budgets = { map:{}, updatedAt:0 }, recurring = [], goals = [];
 
   const sorted = () => [...S.entries].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt||0)-(b.createdAt||0));
   const signed = e => e.type === 'income' ? satang(e) : -satang(e);
   const inMonth = (e,ym) => e.date.slice(0,7) === ym;
   const isInvestCat = c => String(c).includes('ลงทุน');
   const isInvest = e => e.type === 'expense' && isInvestCat(e.category);
-  const isSpend = e => e.type === 'expense' && !isInvestCat(e.category);
-  const totals = ym => { let i=0,o=0,inv=0; for (const e of S.entries) if (inMonth(e,ym)) { if (e.type==='income') i+=satang(e); else if (isInvestCat(e.category)) inv+=satang(e); else o+=satang(e); } return {i,o,inv}; };
+  const isSaveCat = c => String(c).includes('เงินออม');
+  const isSetAside = c => isInvestCat(c) || isSaveCat(c);
+  const isSpend = e => e.type === 'expense' && !isSetAside(e.category);
+  const totals = ym => { let i=0,o=0,inv=0,sav=0; for (const e of S.entries) if (inMonth(e,ym)) { if (e.type==='income') i+=satang(e); else if (isInvestCat(e.category)) inv+=satang(e); else if (isSaveCat(e.category)) sav+=satang(e); else o+=satang(e); } return {i,o,inv,sav}; };
 
   function toast(msg){
     const t = $('toast'); t.textContent = msg; t.hidden = false;
@@ -532,7 +563,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const {ym} = S, start = ym + '-01';
     let open = 0;
     for (const e of S.entries) if (e.date < start) open += signed(e);
-    const {i,o,inv} = totals(ym), end = open + i - o - inv;
+    const {i,o,inv,sav} = totals(ym), end = open + i - o - inv - sav;
     $('mLabel').textContent = monthName(ym);
     $('heroLabel').textContent = `คงเหลือสิ้นเดือน${MONTHS[+ym.slice(5)-1]}`;
     $('heroNum').textContent = money(end);
@@ -602,7 +633,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   function renderBudget(){
     const spent = new Map();
     for (const e of S.entries) if (inMonth(e,S.ym) && isSpend(e)) spent.set(e.category,(spent.get(e.category)||0)+satang(e));
-    const budgetCats = Object.keys(budgets.map).filter(c => !isInvestCat(c)), budgeted = budgetCats.length > 0;
+    const budgetCats = Object.keys(budgets.map).filter(c => !isSetAside(c)), budgeted = budgetCats.length > 0;
     $('bEdit').hidden = S.editBudget;
     $('budget').hidden = S.editBudget;
     $('budgetForm').hidden = !S.editBudget;
@@ -630,28 +661,29 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     $('budget').innerHTML = head + html;
   }
   function renderSummary(){
-    const {i,o,inv} = totals(S.ym), day = S.ym === currentYm() ? +todayStr().slice(8) : 31;
+    const {i,o,inv,sav} = totals(S.ym), day = S.ym === currentYm() ? +todayStr().slice(8) : 31;
     const sameDay = ymd => +ymd.slice(8) <= day;
     const spentThis = S.entries.filter(e => inMonth(e,S.ym) && isSpend(e) && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
     const prevYm = shiftYm(S.ym,-1), prevSpent = S.entries.filter(e => inMonth(e,prevYm) && isSpend(e) && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
     let open = 0; for (const e of S.entries) if (e.date < S.ym + '-01') open += signed(e);
-    $('sEnd').textContent = money(open+i-o-inv); $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sInv').textContent = money(inv); $('sNet').textContent = money(i-o-inv);
+    $('sEnd').textContent = money(open+i-o-inv-sav); $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sSav').textContent = money(sav); $('sInv').textContent = money(inv); $('sNet').textContent = money(i-o-inv-sav);
+    $('sRate').textContent = i > 0 ? `${Math.round((sav+inv)/i*100)}%` : '-';
     const diff = spentThis - prevSpent, period = S.ym === currentYm() ? 'ช่วงเดียวกันของเดือนก่อน' : 'เดือนก่อน';
     $('sCompare').textContent = !prevSpent ? '' : diff === 0 ? `จ่ายเท่ากับ${period}` : `จ่าย${diff>0?'มากกว่า':'น้อยกว่า'}${period} ${money(Math.abs(diff))} บาท`;
     $('sTable').innerHTML = Array.from({length:6},(_,n) => shiftYm(S.ym,-n)).map(ym => {
       const t = totals(ym), [y,m] = ym.split('-');
-      return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.inv)}</td></tr>`;
+      return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.inv+t.sav)}</td></tr>`;
     }).join('');
   }
   function aiSuggestions(){
     const ym = currentYm(), now = totals(ym), prev = totals(shiftYm(ym,-1)), hasBudget = Object.keys(budgets.map).length > 0, list = [];
-    if (now.o > 0) list.push('เดือนนี้จ่ายอะไรเยอะสุด');
+    if (now.o > 0) list.push('วิเคราะห์พฤติกรรมการใช้เงินของฉัน', 'ลดค่าใช้จ่ายตรงไหนดี');
+    list.push('ช่วยวางแผนการออมให้หน่อย');
     if (now.o > 0 && hasBudget) list.push('งบหมวดไหนใกล้เต็ม');
     if (now.o > 0 && prev.o > 0) list.push('จ่ายมากกว่าเดือนก่อนไหม');
-    if (now.o > 0) list.push('ลดค่าใช้จ่ายตรงไหนดี');
     if (now.i > 0 && !hasBudget) list.push('ช่วยแบ่งงบจากรายรับเดือนนี้');
+    if (now.o > 0) list.push('เดือนนี้จ่ายอะไรเยอะสุด');
     if (now.i > 0 || now.o > 0) list.push('เดือนนี้เหลือเงินเท่าไหร่');
-    list.push('อยากเก็บเงินเดือนละ 2,000 ต้องทำยังไง');
     return list.slice(0,4);
   }
   function renderAi(){
@@ -678,9 +710,23 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       const t = totals(ym), byCategory = {};
       for (const e of S.entries) if (inMonth(e,ym) && isSpend(e)) byCategory[e.category] = (byCategory[e.category]||0) + Number(e.amount);
       for (const k of Object.keys(byCategory)) byCategory[k] = Math.round(byCategory[k]*100)/100;
-      return { month:ym, income:t.i/100, expense:t.o/100, invested:t.inv/100, expenseByCategory:byCategory };
+      return { month:ym, income:t.i/100, expense:t.o/100, invested:t.inv/100, saved:t.sav/100, expenseByCategory:byCategory };
     });
-    return { balance:balance/100, months, monthlyBudgets:budgets.map, recurringCount:recurring.length };
+    // spending habits for the last 30 days as totals only: no notes and no single entries
+    const since = new Date(Date.now()-29*864e5), sinceStr = `${since.getFullYear()}-${pad(since.getMonth()+1)}-${pad(since.getDate())}`;
+    const recent = S.entries.filter(e => isSpend(e) && e.date >= sinceStr && e.date <= todayStr()), perCat = {};
+    let week = 0, weekend = 0;
+    const days = new Set();
+    for (const e of recent) {
+      const wd = new Date(e.date + 'T12:00:00').getDay(), v = satang(e)/100;
+      if (wd === 0 || wd === 6) weekend += v; else week += v;
+      days.add(e.date);
+      const c = perCat[e.category] ||= { count:0, total:0 };
+      c.count++; c.total = Math.round((c.total+v)*100)/100;
+    }
+    const habits = { period:'30 วันล่าสุด', transactions:recent.length, daysWithSpending:days.size, weekdayTotal:Math.round(week*100)/100, weekendTotal:Math.round(weekend*100)/100, byCategory:perCat };
+    return { balance:balance/100, months, habits, monthlyBudgets:budgets.map, recurringCount:recurring.length,
+      savingGoals:goals.map(g => ({ name:g.name, target:g.target, saved:goalSaved(g)/100, byDate:g.date })) };
   }
   function cleanProposal(list){
     const cats = new Set(allCategories()), out = [];
@@ -796,8 +842,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       if (date <= today || date < t.start || tombs[`rc-${t.id}-${ym}`]) continue;
       if (t.type === 'income') upIn += Math.round(t.amount*100); else upOut += Math.round(t.amount*100);
     }
-    const {i,o,inv} = totals(ym), rest = dailyRate(variable,day) * (total-day);
-    return { balance:open+i-o-inv+upIn-upOut-rest, spend:o+upOut+rest };
+    const {i,o,inv,sav} = totals(ym), rest = dailyRate(variable,day) * (total-day);
+    return { balance:open+i-o-inv-sav+upIn-upOut-rest, spend:o+upOut+rest };
   }
   function insights(){
     const out = [], ym = S.ym, isNow = ym === currentYm(), today = todayStr(), day = isNow ? +today.slice(8) : 31;
@@ -809,10 +855,16 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       else if (inMonth(e,prevYm)) prevSpent.set(e.category,(prevSpent.get(e.category)||0)+satang(e));
     }
     for (const [c,baht] of Object.entries(budgets.map)) {
-      if (isInvestCat(c)) continue;
+      if (isSetAside(c)) continue;
       const left = Math.round(baht*100) - (S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.category===c).reduce((n,e) => n+satang(e),0));
-      if (left < 0) out.push({ tone:'bad', text:`${c} เกินงบแล้ว ${money(-left)} บาท` });
-      else { const hit = budgetHitDay(c,left); if (hit) out.push({ tone:'warn', text:`${c} อาจเกินงบวันที่ ${hit}` }); }
+      if (left < 0) { out.push({ tone:'bad', text:`${c} เกินงบแล้ว ${money(-left)} บาท` }); continue; }
+      const budget = Math.round(baht*100), used = Math.round((budget-left)/budget*100), hit = budgetHitDay(c,left);
+      if (used >= 80) out.push({ tone:'warn', text:`${c} ใช้ไปแล้ว ${used}% ของงบ${hit ? ` อาจเกินวันที่ ${hit}` : ''}` });
+      else if (hit) out.push({ tone:'warn', text:`${c} อาจเกินงบวันที่ ${hit}` });
+    }
+    if (spent.size >= 2) {
+      const all = [...spent.values()].reduce((n,v) => n+v,0), [c,v] = [...spent].sort((a,b) => b[1]-a[1])[0];
+      out.push({ tone:'info', text:`จ่ายเยอะสุดคือ ${c} ${money(v)} บาท (${Math.round(v/all*100)}% ของรายจ่าย)` });
     }
     const period = isNow ? 'ช่วงเดียวกันของเดือนก่อน' : 'เดือนก่อน';
     [...spent].map(([c,v]) => { const p = prevSpent.get(c)||0; return { c, p, v, d:v-p }; })
@@ -843,7 +895,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const amount = Math.round(doc.amount*100);
     const dup = S.entries.find(e => e.type===doc.type && satang(e)===amount && e.category===doc.category && e.date===doc.date);
     if (dup) return `มีรายการ ${money(amount)} บาท หมวด${doc.category} ในวันเดียวกันแล้ว อาจจดซ้ำ`;
-    if (doc.type === 'expense' && !isInvestCat(doc.category)) {
+    if (doc.type === 'expense' && !isSetAside(doc.category)) {
       const hist = S.entries.filter(e => e.type==='expense' && e.category===doc.category && noRecurring(e)).map(satang);
       if (hist.length >= 5) { const med = median(hist); if (amount > med*3 && amount-med >= 20000) return `ยอดนี้สูงกว่าปกติของหมวด${doc.category} ซึ่งมักอยู่ที่ประมาณ ${money(med)} บาท`; }
     }
@@ -858,6 +910,58 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     document.querySelectorAll('.tabs [data-tab]').forEach(b => { if (b.dataset.tab === t) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
     try { localStorage.setItem('ledger-tab-v1', t); } catch {}
     scrollTo(0,0);
+  }
+  const monthsBetween = (fromYm,toYm) => (+toYm.slice(0,4)-+fromYm.slice(0,4))*12 + (+toYm.slice(5,7)-+fromYm.slice(5,7));
+  const goalMatch = (g,e) => e.type === 'expense' && e.date >= g.from && (g.source === 'both' ? isSetAside(e.category) : g.source === 'invest' ? isInvestCat(e.category) : isSaveCat(e.category));
+  const goalSaved = g => Math.round(g.start*100) + S.entries.filter(e => goalMatch(g,e)).reduce((n,e) => n+satang(e),0);
+  function renderGoals(){
+    $('gAdd').hidden = S.goalForm; $('goalList').hidden = S.goalForm; $('goalForm').hidden = !S.goalForm;
+    if (S.goalForm) return;
+    if (!goals.length) { $('goalList').innerHTML = `<p class="muted">ตั้งเป้าหมายเพื่อดูว่าต้องเก็บเดือนละเท่าไหร่</p>`; return; }
+    const ym = currentYm(), today = todayStr();
+    $('goalList').innerHTML = [...goals].sort((a,b) => a.date < b.date ? -1 : 1).map(g => {
+      const saved = goalSaved(g), target = Math.round(g.target*100), left = target-saved, pct = saved/target*100;
+      const monthsLeft = monthsBetween(ym,g.date.slice(0,7)) + 1;
+      const thisMonth = S.entries.filter(e => goalMatch(g,e) && inMonth(e,ym)).reduce((n,e) => n+satang(e),0);
+      let note;
+      if (left <= 0) note = 'ถึงเป้าแล้ว';
+      else if (g.date < today) note = `เลยวันเป้าหมายแล้ว ยังขาด ${money(left)} บาท`;
+      else { const base = left + thisMonth, per = Math.ceil(base/monthsLeft/100)*100; note = `ต้องเก็บเดือนละ ${money(per)} บาท อีก ${monthsLeft} เดือน · เดือนนี้เก็บแล้ว ${money(thisMonth)}`; }
+      const [y,m] = g.date.split('-');
+      return `<div class="goal"><span class="cat-line"><span>${esc(g.name)}</span><span class="fig">${Math.floor(Math.min(pct,100))}%</span></span>
+        <span class="track"><span class="fill ${left<=0?'b-done':'b-ok'}" style="width:${Math.min(100,pct).toFixed(1)}%"></span></span>
+        <span class="cat-line"><span class="fig">${money(saved)} / ${money(target)}</span><span class="bud-note">ภายใน ${MON[+m-1]} ${String(be(y)).slice(2)}</span></span>
+        <span class="bud-note">${note}</span>
+        <span class="goal-actions"><button type="button" class="ghost" data-goal-edit="${esc(g.id)}">แก้ไข</button><button type="button" class="ghost" data-goal-del="${esc(g.id)}">${S.confirmGoal===g.id?'ยืนยันลบ':'ลบ'}</button></span></div>`;
+    }).join('');
+  }
+  function openGoal(g){
+    S.goalForm = true; S.goalEdit = g ? g.id : null;
+    $('gName').value = g?.name || ''; $('gTarget').value = g ? g.target : ''; $('gDate').value = g?.date || ''; $('gStart').value = g?.start || ''; $('gSource').value = g?.source || 'save';
+    $('gErr').hidden = true; renderGoals();
+  }
+  function saveGoal(ev){
+    ev.preventDefault();
+    const err = t => { $('gErr').textContent = t; $('gErr').hidden = false; };
+    const name = $('gName').value.trim(), target = Number($('gTarget').value.replace(/[,\s฿]/g,'')), start = Number($('gStart').value.replace(/[,\s฿]/g,'') || 0), date = $('gDate').value;
+    if (!name) return err('ตั้งชื่อเป้าหมายก่อน');
+    if (!(target > 0) || target >= 1e12) return err('กรอกเงินเป้าหมายเป็นตัวเลขที่มากกว่า 0');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return err('เลือกวันเป้าหมาย');
+    if (!Number.isFinite(start) || start < 0) return err('ยอดที่มีอยู่แล้วต้องเป็นตัวเลข');
+    const old = goals.find(g => g.id === S.goalEdit), now = Date.now();
+    const g = { id:old?.id || 'gl-' + newId(), name, target:Math.round(target*100)/100, start:Math.round(start*100)/100, date, source:$('gSource').value, from:old?.from || todayStr(), updatedAt:now };
+    try { setGoals([...goals.filter(x => x.id !== g.id), g]); mark(g.id); saveMeta(); queueSync(); }
+    catch { return err('บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม'); }
+    S.goalForm = false; render(); toast('บันทึกเป้าหมายแล้ว');
+  }
+  function deleteGoal(id){
+    if (S.confirmGoal !== id) {
+      S.confirmGoal = id; renderGoals();
+      clearTimeout(stopTimer); stopTimer = setTimeout(() => { S.confirmGoal = null; renderGoals(); }, 4000);
+      return;
+    }
+    S.confirmGoal = null; tombs[id] = Date.now(); mark(id);
+    setGoals(goals.filter(g => g.id !== id)); saveMeta(); queueSync(); render(); toast('ลบเป้าหมายแล้ว รายการเงินไม่หาย');
   }
   function renderRecurring(){
     if (!recurring.length) { $('recurList').innerHTML = `<p class="muted">ติ๊ก “ทำซ้ำทุกเดือน” ตอนเพิ่มรายการ เช่น เงินเดือนหรือค่าเช่า</p>`; return; }
@@ -909,7 +1013,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   }
   function openBudget(){
     const custom = S.entries.filter(isSpend).map(e => e.category);
-    const cats = [...new Set([...CATS.expense, ...custom, ...Object.keys(budgets.map)])].filter(c => !isInvestCat(c));
+    const cats = [...new Set([...CATS.expense, ...custom, ...Object.keys(budgets.map)])].filter(c => !isSetAside(c));
     $('budgetFields').innerHTML = cats.map((c,i) => `<label class="brow" for="b${i}"><span>${esc(c)}</span>
       <input id="b${i}" data-cat="${esc(c)}" inputmode="decimal" autocomplete="off" placeholder="-" value="${budgets.map[c] ?? ''}"></label>`).join('');
     $('budgetErr').hidden = true;
@@ -966,7 +1070,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const balMap = new Map(); let run = 0;
     for (const e of sorted()) { run += signed(e); balMap.set(e.id,run); }
     const open = renderHeader();
-    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderRecurring(); renderSummary(); renderInsights(); renderTrend(); renderCloud();
+    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderGoals(); renderRecurring(); renderSummary(); renderInsights(); renderTrend(); renderCloud();
     $('save').disabled = S.saving;
   }
 
@@ -1089,7 +1193,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function backup(){
-    saveFile(`ledger-backup-${todayStr()}.json`, JSON.stringify({app:'ledger',version:2,entries:S.entries,budgets:budgets.map,recurring},null,2), 'application/json');
+    saveFile(`ledger-backup-${todayStr()}.json`, JSON.stringify({app:'ledger',version:2,entries:S.entries,budgets:budgets.map,recurring,goals},null,2), 'application/json');
     toast('สำรองข้อมูลแล้ว');
   }
   async function restore(file){
@@ -1098,8 +1202,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       const list = clean(Array.isArray(parsed) ? parsed : parsed.entries);
       const fileBudgets = cleanBudgets(parsed.budgets);
       const hasBudgets = Object.keys(fileBudgets).length > 0;
-      const fileRec = cleanRecurring(parsed.recurring);
-      if (!list.length && !hasBudgets && !fileRec.length) { toast('ไม่พบรายการในไฟล์นี้'); return; }
+      const fileRec = cleanRecurring(parsed.recurring), fileGoals = cleanGoals(parsed.goals);
+      if (fileGoals.length) {
+        const ids = new Set(fileGoals.map(g => g.id)), now = Date.now();
+        for (const id of ids) { delete tombs[id]; mark(id); }
+        setGoals([...goals.filter(g => !ids.has(g.id)), ...fileGoals.map(g => ({...g, updatedAt:now}))]); saveMeta();
+      }
+      if (!list.length && !hasBudgets && !fileRec.length && !fileGoals.length) { toast('ไม่พบรายการในไฟล์นี้'); return; }
       if (fileRec.length) {
         const ids = new Set(fileRec.map(t => t.id)), now = Date.now();
         for (const id of ids) { delete tombs[id]; mark(id); }
@@ -1150,6 +1259,14 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     else if (b.dataset.cancel) { S.ai[+b.dataset.cancel] = { who:'bot', text:'ยกเลิกแล้ว' }; renderAi(); }
     else if (b.dataset.drop) { const [i,j] = b.dataset.drop.split(':').map(Number); S.ai[i].proposal.splice(j,1); if (!S.ai[i].proposal.length) S.ai[i] = { who:'bot', text:'ยกเลิกแล้ว' }; renderAi(); }
   };
+  $('gAdd').onclick = () => openGoal(null);
+  $('gCancel').onclick = () => { S.goalForm = false; renderGoals(); };
+  $('goalForm').onsubmit = saveGoal;
+  $('goalList').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.goalEdit) openGoal(goals.find(g => g.id === b.dataset.goalEdit));
+    else if (b.dataset.goalDel) deleteGoal(b.dataset.goalDel);
+  };
   $('bEdit').onclick = openBudget;
   $('bCancel').onclick = () => { S.editBudget = false; renderBudget(); };
   $('budgetForm').onsubmit = saveBudgetForm;
@@ -1184,8 +1301,9 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       /^\d{4}-\d{2}-\d{2}$/.test(e.date||'') && Number.isFinite(Number(e.amount)) && Number(e.amount) > 0)
       .map(e => ({ id:e.id, type:e.type, amount:Number(e.amount), category:String(e.category||'อื่นๆ'), note:String(e.note||''), date:e.date, createdAt:Number(e.createdAt)||0, updatedAt:Number(e.updatedAt)||Number(e.createdAt)||1 }));
   }
-  const BUDGETS = 'ledger-budgets-v1', BUDGET_ID = 'budget-settings', RECUR = 'ledger-recurring-v1';
+  const BUDGETS = 'ledger-budgets-v1', BUDGET_ID = 'budget-settings', RECUR = 'ledger-recurring-v1', GOALS = 'ledger-goals-v1';
   const isTemplate = id => id.startsWith('rt-');
+  const isGoal = id => id.startsWith('gl-');
   const KEY = 'ledger-entries-v1', TOMB = 'ledger-deleted-v1', DIRTY = 'ledger-dirty-v1', CLOUD = 'ledger-cloud-v1';
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   const readAll = () => { try { return clean(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { return []; } };
@@ -1211,6 +1329,16 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       .map(t => ({ id:t.id, type:t.type, amount:Number(t.amount), category:String(t.category||'อื่นๆ'), note:String(t.note||''), start:t.start, day:Number(t.day), createdAt:Number(t.createdAt)||1, updatedAt:Number(t.updatedAt)||1 }));
   }
   recurring = cleanRecurring(readJson(RECUR,[]));
+  function cleanGoals(list){
+    if (!Array.isArray(list)) return [];
+    return list.filter(g => g && typeof g.id === 'string' && isGoal(g.id) && g.name && Number(g.target) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(g.date||'') && /^\d{4}-\d{2}-\d{2}$/.test(g.from||''))
+      .map(g => ({ id:g.id, name:String(g.name).slice(0,40), target:Number(g.target), start:Number(g.start)||0, date:g.date, from:g.from, source:['save','invest','both'].includes(g.source)?g.source:'save', updatedAt:Number(g.updatedAt)||1 }));
+  }
+  goals = cleanGoals(readJson(GOALS,[]));
+  function setGoals(next){
+    if (canPersist) localStorage.setItem(GOALS, JSON.stringify(next));
+    goals = next;
+  }
   function setRecurring(next){
     if (canPersist) localStorage.setItem(RECUR, JSON.stringify(next));
     recurring = next;
@@ -1280,6 +1408,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         }
         continue;
       }
+      if (isGoal(r.id)) {
+        const cur = goals.find(g => g.id === r.id);
+        if (r.updated_at <= (cur?.updatedAt ?? tombs[r.id] ?? 0)) continue;
+        if (r.deleted) { tombs[r.id] = r.updated_at; setGoals(goals.filter(g => g.id !== r.id)); }
+        else {
+          let parsed = []; try { parsed = cleanGoals([{...JSON.parse(r.data), id:r.id, updatedAt:r.updated_at}]); } catch {}
+          if (!parsed.length) continue;
+          delete tombs[r.id]; setGoals([...goals.filter(g => g.id !== r.id), parsed[0]]);
+        }
+        dirty.delete(r.id); changed = true; continue;
+      }
       if (isTemplate(r.id)) {
         const cur = recurring.find(t => t.id === r.id);
         if (r.updated_at <= (cur?.updatedAt ?? tombs[r.id] ?? 0)) continue;
@@ -1312,11 +1451,16 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       for (;;) {
         const map = new Map(S.entries.map(e => [e.id,e]));
         const ids = [...dirty].slice(0,100);
-        const stampIn = (m,id) => id === BUDGET_ID ? budgets.updatedAt : isTemplate(id) ? (recurring.find(t => t.id === id)?.updatedAt ?? tombs[id] ?? 1) : (m.get(id)?.updatedAt ?? tombs[id] ?? 1);
+        const stampIn = (m,id) => id === BUDGET_ID ? budgets.updatedAt : isGoal(id) ? (goals.find(g => g.id === id)?.updatedAt ?? tombs[id] ?? 1) : isTemplate(id) ? (recurring.find(t => t.id === id)?.updatedAt ?? tombs[id] ?? 1) : (m.get(id)?.updatedAt ?? tombs[id] ?? 1);
         const stamp = id => stampIn(map,id);
         const sent = new Map(ids.map(id => [id, stamp(id)]));
         const changes = ids.map(id => {
           if (id === BUDGET_ID) return { id, updatedAt:budgets.updatedAt, deleted:false, data:{ kind:'budgets', budgets:budgets.map } };
+          if (isGoal(id)) {
+            const g = goals.find(x => x.id === id);
+            if (g) { const {id:_, updatedAt, ...data} = g; return { id, updatedAt, deleted:false, data:{ kind:'goal', ...data } }; }
+            return { id, updatedAt:stamp(id), deleted:true, data:null };
+          }
           if (isTemplate(id)) {
             const t = recurring.find(x => x.id === id);
             if (t) { const {id:_, updatedAt, ...data} = t; return { id, updatedAt, deleted:false, data:{ kind:'recurring', ...data } }; }
@@ -1350,6 +1494,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     dirty = new Set([...S.entries.map(e => e.id), ...Object.keys(tombs)]);
     if (budgets.updatedAt) dirty.add(BUDGET_ID);
     for (const t of recurring) dirty.add(t.id);
+    for (const g of goals) dirty.add(g.id);
     saveMeta();
     await sync();
     if (cloudErr) {
@@ -1381,7 +1526,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   }
   try { const k = KEY + '-probe'; localStorage.setItem(k,'1'); localStorage.removeItem(k); } catch { canPersist = false; }
   S.entries = readAll();
-  addEventListener('storage', e => { if (e.key === KEY || e.key === BUDGETS || e.key === RECUR) { S.entries = readAll(); budgets = readBudgets(); recurring = cleanRecurring(readJson(RECUR,[])); render(); } });
+  addEventListener('storage', e => { if (e.key === KEY || e.key === BUDGETS || e.key === RECUR || e.key === GOALS) { S.entries = readAll(); budgets = readBudgets(); recurring = cleanRecurring(readJson(RECUR,[])); goals = cleanGoals(readJson(GOALS,[])); render(); } });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   resetSlip();
