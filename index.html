@@ -89,6 +89,15 @@ h1 svg{flex:none;border-radius:7px}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 .add{display:none}
+.insight{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;margin-bottom:10px;background:var(--sheet);border:1px solid var(--line);border-radius:4px;text-align:left;font-size:.9rem;color:var(--ink)}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.dot.warn{background:var(--amber)}
+.dot.bad{background:var(--out)}
+.ins-list{display:grid;gap:8px}
+.ins{display:flex;align-items:baseline;gap:8px;font-size:.94rem}
+.ins .dot{transform:translateY(-1px)}
+.hint{margin:-6px 0 0;font-size:.84rem;color:var(--muted)}
+.slip-warn{margin:0;padding:8px 10px;border-radius:6px;background:var(--warn-bg);color:var(--warn-fg);font-size:.9rem}
 .ai-pane{gap:12px}
 .ai-log{display:grid;gap:10px;min-width:0}
 .msg{max-width:88%;padding:9px 12px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;justify-self:start;background:var(--sheet);border:1px solid var(--line)}
@@ -306,6 +315,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-6M12 20V5M19 20v-9"></path></svg><span>สรุป</span></button>
     </nav>
     <section id="tab-list" aria-label="รายการบัญชี">
+      <button id="insightBar" class="insight" type="button" hidden></button>
     <div class="tools">
       <input id="q" type="search" placeholder="ค้นหารายการ" aria-label="ค้นหารายการ">
       <select id="fcat" aria-label="กรองตามหมวด"></select>
@@ -362,6 +372,10 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         </dl>
         <p id="sCompare" class="muted"></p>
       </section>
+      <section class="chart" aria-labelledby="insH">
+        <h2 id="insH">ข้อสังเกต</h2>
+        <div id="insights" class="ins-list"></div>
+      </section>
     <section class="chart" aria-labelledby="trendH">
       <h2 id="trendH">6 เดือนล่าสุด</h2>
       <div class="legend" aria-hidden="true">
@@ -395,11 +409,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         <label>หมวด<select id="fCategory"></select></label>
         <label>วันที่<input id="fDate" type="date"></label>
       </div>
+      <p id="slipHint" class="hint" hidden></p>
       <label id="newCatWrap" hidden>ชื่อหมวดใหม่<input id="fNewCat" maxlength="30" autocomplete="off"></label>
       <label>รายละเอียด (ไม่บังคับ)
         <input id="fNote" maxlength="120" autocomplete="off" placeholder="เช่น ข้าวกลางวัน">
       </label>
       <label id="recurWrap" class="check"><input id="fRecur" type="checkbox"><span>ทำซ้ำทุกเดือนในวันที่นี้</span></label>
+      <p id="slipWarn" class="slip-warn" role="alert" hidden></p>
       <p id="formErr" class="err" role="alert" hidden></p>
       <div class="actions">
         <button id="save" class="primary" type="submit">บันทึก</button>
@@ -490,7 +506,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const money = s => { const a = Math.abs(s)/100; const t = a.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (s<0?'−':'') + t; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'', ai:[], aiBusy:false };
+  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'', ai:[], aiBusy:false, catTouched:false, warnKey:'' };
   let delTimer = null, toastTimer = null, hoverYm = null, stopTimer = null, canPersist = true, budgets = { map:{}, updatedAt:0 }, recurring = [];
 
   const sorted = () => [...S.entries].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt||0)-(b.createdAt||0));
@@ -587,7 +603,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       const b = Math.round(budgets.map[c]*100), pct = u/b*100, left = b-u;
       totalB += b; totalS += u; if (left < 0) over++;
       const cls = left < 0 ? 'b-over' : pct >= 80 ? 'b-near' : 'b-ok';
-      const note = left < 0 ? `เกินงบ ${money(-left)}` : left === 0 ? 'ใช้ครบงบแล้ว' : pct >= 80 ? `ใกล้เต็ม เหลือ ${money(left)}` : `เหลือ ${money(left)}`;
+      const hit = budgetHitDay(c, left);
+      const note = left < 0 ? `เกินงบ ${money(-left)}` : left === 0 ? 'ใช้ครบงบแล้ว' : hit ? `เหลือ ${money(left)} · อาจเกินงบวันที่ ${hit}` : pct >= 80 ? `ใกล้เต็ม เหลือ ${money(left)}` : `เหลือ ${money(left)}`;
       return `<button type="button" class="bud" data-cat="${esc(c)}"><span class="cat-line"><span>${esc(c)}</span><span class="fig">${money(u)} / ${money(b)}</span></span>
         <span class="track"><span class="fill ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></span></span>
         <span class="bud-note${left<0?' over':''}">${note}</span></button>`;
@@ -598,10 +615,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     $('budget').innerHTML = head + html;
   }
   function renderSummary(){
-    const {i,o} = totals(S.ym), prev = totals(shiftYm(S.ym,-1));
+    const {i,o} = totals(S.ym), day = S.ym === currentYm() ? +todayStr().slice(8) : 31;
+    const sameDay = ymd => +ymd.slice(8) <= day;
+    const spentThis = S.entries.filter(e => inMonth(e,S.ym) && e.type==='expense' && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
+    const prevYm = shiftYm(S.ym,-1), prevSpent = S.entries.filter(e => inMonth(e,prevYm) && e.type==='expense' && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
     $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sNet').textContent = money(i-o);
-    const diff = o - prev.o;
-    $('sCompare').textContent = !prev.o ? '' : diff === 0 ? 'จ่ายเท่ากับเดือนก่อน' : `จ่าย${diff>0?'มากกว่า':'น้อยกว่า'}เดือนก่อน ${money(Math.abs(diff))} บาท`;
+    const diff = spentThis - prevSpent, period = S.ym === currentYm() ? 'ช่วงเดียวกันของเดือนก่อน' : 'เดือนก่อน';
+    $('sCompare').textContent = !prevSpent ? '' : diff === 0 ? `จ่ายเท่ากับ${period}` : `จ่าย${diff>0?'มากกว่า':'น้อยกว่า'}${period} ${money(Math.abs(diff))} บาท`;
     $('sTable').innerHTML = Array.from({length:6},(_,n) => shiftYm(S.ym,-n)).map(ym => {
       const t = totals(ym), [y,m] = ym.split('-');
       return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.i-t.o)}</td></tr>`;
@@ -685,6 +705,133 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     } catch { toast('บันทึกไม่สำเร็จ พื้นที่เก็บข้อมูลของเบราว์เซอร์อาจเต็ม'); return; }
     render(); renderAi();
   }
+  /* ---------- built-in helper: everything here runs on this device ---------- */
+  const CAT_WORDS = {
+    'อาหาร':['ข้าว','กิน','กาแฟ','ชา','อาหาร','ก๋วยเตี๋ยว','ขนม','น้ำดื่ม','ส้มตำ','หมูกระทะ','ชาบู','บุฟเฟ่','ร้านอาหาร','มื้อ','7-11','เซเว่น','grabfood','lineman','foodpanda'],
+    'เดินทาง':['น้ำมัน','รถไฟฟ้า','bts','mrt','แท็กซี่','taxi','grab','bolt','ทางด่วน','รถเมล์','วิน','มอไซค์','ที่จอดรถ','ค่ารถ','เครื่องบิน'],
+    'ค่าเช่า/ที่พัก':['ค่าเช่า','ค่าห้อง','ค่าหอ','ค่าบ้าน','ส่วนกลาง'],
+    'ค่าน้ำค่าไฟ':['ค่าไฟ','ค่าน้ำ','การไฟฟ้า','ประปา'],
+    'โทรศัพท์/อินเทอร์เน็ต':['ค่าเน็ต','อินเทอร์เน็ต','เน็ตบ้าน','ค่าโทร','ais','true','dtac','เติมเงิน'],
+    'ของใช้ในบ้าน':['น้ำยา','ทิชชู่','ผงซักฟอก','สบู่','ยาสีฟัน','ของใช้'],
+    'สุขภาพ':['หมอ','ยา','โรงพยาบาล','คลินิก','ฟิตเนส','วิตามิน','ทำฟัน'],
+    'ช้อปปิ้ง':['เสื้อ','รองเท้า','กางเกง','กระเป๋า','shopee','lazada','ช้อป'],
+    'บันเทิง':['หนัง','netflix','spotify','youtube','เกม','คอนเสิร์ต','เหล้า','เบียร์'],
+    'การศึกษา':['หนังสือ','คอร์ส','ค่าเรียน','ค่าเทอม'],
+    'ผ่อนชำระ':['ผ่อน','ค่างวด','บัตรเครดิต'],
+    'เงินออม':['ออม','เก็บเงิน','ฝากประจำ'],
+    'เงินเดือน':['เงินเดือน'], 'โบนัส':['โบนัส'], 'ขายของ':['ขาย'], 'ดอกเบี้ย/เงินปันผล':['ดอกเบี้ย','ปันผล'], 'รายได้เสริม':['ฟรีแลนซ์','ค่าจ้าง','งานเสริม'],
+  };
+  function suggestCategory(note, type){
+    const n = note.trim().toLowerCase();
+    if (n.length < 2) return null;
+    const past = S.entries.filter(e => e.type === type && e.note).sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    const exact = past.find(e => e.note.toLowerCase() === n);
+    if (exact) return { category:exact.category, learned:true };
+    const counts = new Map();
+    for (const e of past) { const t = e.note.toLowerCase(); if (t.includes(n) || n.includes(t)) counts.set(e.category,(counts.get(e.category)||0)+1); }
+    if (counts.size) return { category:[...counts].sort((a,b) => b[1]-a[1])[0][0], learned:true };
+    const allowed = new Set(CATS[type]);
+    let best = null;
+    for (const [cat,words] of Object.entries(CAT_WORDS)) {
+      if (!allowed.has(cat)) continue;
+      for (const w of words) if (n.includes(w) && (!best || w.length > best.len)) best = { category:cat, len:w.length };
+    }
+    return best ? { category:best.category, learned:false } : null;
+  }
+  function applySuggestion(){
+    if (S.catTouched || S.editing) return;
+    const r = suggestCategory($('fNote').value, S.type), hint = $('slipHint');
+    const has = r && [...$('fCategory').options].some(o => o.value === r.category);
+    if (has) { $('fCategory').value = r.category; hint.textContent = `เลือกหมวด ${r.category} ให้${r.learned ? 'จากรายการที่เคยจด' : ''}`; }
+    else if (!hint.hidden) $('fCategory').selectedIndex = 0;
+    hint.hidden = !has;
+  }
+  const daysIn = ym => new Date(+ym.slice(0,4), +ym.slice(5), 0).getDate();
+  const median = list => { const a = [...list].sort((x,y) => x-y), m = a.length >> 1; return a.length % 2 ? a[m] : (a[m-1]+a[m])/2; };
+  const roundBaht = sat => Math.round(sat/1000)*1000; // nearest 10 baht
+  const noRecurring = e => !e.id.startsWith('rc-');
+  // daily pace of everyday spending; one big bill such as rent should not be repeated in the projection
+  function dailyRate(list, day){
+    if (!list.length) return 0;
+    const amounts = list.map(satang), limit = median(amounts)*5;
+    const usual = amounts.length >= 3 ? amounts.filter(a => a <= limit) : amounts;
+    return usual.reduce((n,a) => n+a,0) / day;
+  }
+  function budgetHitDay(cat, leftSatang){
+    const ym = currentYm(), today = todayStr(), day = +today.slice(8);
+    if (S.ym !== ym || day < 5 || leftSatang <= 0) return null;
+    const items = S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.category===cat && e.date<=today && noRecurring(e));
+    if (items.length < 2) return null;
+    const rate = dailyRate(items, day);
+    if (!rate) return null;
+    const hit = day + Math.ceil(leftSatang/rate);
+    return hit <= daysIn(ym) ? hit : null;
+  }
+  function forecast(){
+    const ym = currentYm(), today = todayStr(), day = +today.slice(8), total = daysIn(ym);
+    if (S.ym !== ym || day < 5) return null;
+    const variable = S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.date<=today && noRecurring(e));
+    if (variable.length < 3) return null;
+    let upIn = 0, upOut = 0, open = 0;
+    for (const e of S.entries) if (e.date < ym + '-01') open += signed(e);
+    for (const t of recurring) {
+      const date = `${ym}-${pad(Math.min(t.day,total))}`;
+      if (date <= today || date < t.start || tombs[`rc-${t.id}-${ym}`]) continue;
+      if (t.type === 'income') upIn += Math.round(t.amount*100); else upOut += Math.round(t.amount*100);
+    }
+    const {i,o} = totals(ym), rest = dailyRate(variable,day) * (total-day);
+    return { balance:open+i-o+upIn-upOut-rest, spend:o+upOut+rest };
+  }
+  function insights(){
+    const out = [], ym = S.ym, isNow = ym === currentYm(), today = todayStr(), day = isNow ? +today.slice(8) : 31;
+    const f = forecast();
+    if (f) out.push({ tone:f.balance < 0 ? 'bad' : 'info', text:`ถ้าใช้จ่ายแบบนี้ สิ้นเดือนน่าจะ${f.balance < 0 ? 'ติดลบ' : 'เหลือ'}ประมาณ ${money(Math.abs(roundBaht(f.balance)))} บาท` });
+    const spent = new Map(), prevSpent = new Map(), prevYm = shiftYm(ym,-1);
+    for (const e of S.entries) if (e.type==='expense' && +e.date.slice(8) <= day) {
+      if (inMonth(e,ym)) spent.set(e.category,(spent.get(e.category)||0)+satang(e));
+      else if (inMonth(e,prevYm)) prevSpent.set(e.category,(prevSpent.get(e.category)||0)+satang(e));
+    }
+    for (const [c,baht] of Object.entries(budgets.map)) {
+      const left = Math.round(baht*100) - (S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.category===c).reduce((n,e) => n+satang(e),0));
+      if (left < 0) out.push({ tone:'bad', text:`${c} เกินงบแล้ว ${money(-left)} บาท` });
+      else { const hit = budgetHitDay(c,left); if (hit) out.push({ tone:'warn', text:`${c} อาจเกินงบวันที่ ${hit}` }); }
+    }
+    const period = isNow ? 'ช่วงเดียวกันของเดือนก่อน' : 'เดือนก่อน';
+    [...spent].map(([c,v]) => { const p = prevSpent.get(c)||0; return { c, p, v, d:v-p }; })
+      .filter(x => x.p >= 10000 && Math.abs(x.d) >= 10000 && Math.abs(x.d)/x.p >= 0.2)
+      .sort((a,b) => Math.abs(b.d)-Math.abs(a.d)).slice(0,2)
+      .forEach(x => out.push({ tone:x.d > 0 ? 'warn' : 'info', text:`${x.c}${x.d>0?'เพิ่มขึ้น':'ลดลง'} ${Math.round(Math.abs(x.d)/x.p*100)}% จาก${period}` }));
+    const month = S.entries.filter(e => inMonth(e,ym) && noRecurring(e));
+    let unusual = 0;
+    for (const e of month.filter(x => x.type==='expense').sort((a,b) => satang(b)-satang(a))) {
+      if (unusual >= 2) break;
+      const hist = S.entries.filter(x => x.type==='expense' && x.category===e.category && x.id!==e.id && noRecurring(x)).map(satang);
+      if (hist.length >= 5 && satang(e) > median(hist)*3 && satang(e)-median(hist) >= 20000) { unusual++; out.push({ tone:'warn', text:`${e.note || e.category} ${money(satang(e))} บาท สูงกว่าปกติของหมวด${e.category}` }); }
+    }
+    const seen = new Set(), dups = new Set();
+    for (const e of month) { const k = [e.date,e.type,satang(e),e.category,e.note].join('|'); if (seen.has(k)) dups.add(k); seen.add(k); }
+    if (dups.size) out.push({ tone:'warn', text:`อาจจดซ้ำ ${dups.size} รายการ ตรวจในแท็บรายการได้` });
+    return out;
+  }
+  function renderInsights(){
+    const list = insights(), order = { bad:0, warn:1, info:2 };
+    const top = [...list].sort((a,b) => order[a.tone]-order[b.tone])[0], bar = $('insightBar');
+    bar.hidden = !top;
+    if (top) bar.innerHTML = `<span class="dot ${top.tone}"></span><span>${esc(top.text)}</span>`;
+    $('insights').innerHTML = list.length ? list.map(x => `<div class="ins"><span class="dot ${x.tone}"></span><span>${esc(x.text)}</span></div>`).join('')
+      : `<p class="muted">จดต่ออีกสักระยะ แล้วโปรแกรมจะช่วยสรุปให้ เช่น ทำนายยอดสิ้นเดือน</p>`;
+  }
+  function checkEntry(doc){
+    const amount = Math.round(doc.amount*100);
+    const dup = S.entries.find(e => e.type===doc.type && satang(e)===amount && e.category===doc.category && e.date===doc.date);
+    if (dup) return `มีรายการ ${money(amount)} บาท หมวด${doc.category} ในวันเดียวกันแล้ว อาจจดซ้ำ`;
+    if (doc.type === 'expense') {
+      const hist = S.entries.filter(e => e.type==='expense' && e.category===doc.category && noRecurring(e)).map(satang);
+      if (hist.length >= 5) { const med = median(hist); if (amount > med*3 && amount-med >= 20000) return `ยอดนี้สูงกว่าปกติของหมวด${doc.category} ซึ่งมักอยู่ที่ประมาณ ${money(med)} บาท`; }
+    }
+    return '';
+  }
+  function clearWarn(){ S.warnKey = ''; $('slipWarn').hidden = true; if (!S.editing) $('save').textContent = 'บันทึก'; }
   function setTab(t){
     S.tab = t;
     for (const [k,id] of [['budget','tab-budget'],['summary','tab-summary'],['list','tab-list'],['ai','tab-ai']]) $(id).hidden = k !== t;
@@ -801,7 +948,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const balMap = new Map(); let run = 0;
     for (const e of sorted()) { run += signed(e); balMap.set(e.id,run); }
     const open = renderHeader();
-    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderRecurring(); renderSummary(); renderTrend(); renderCloud();
+    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderRecurring(); renderSummary(); renderInsights(); renderTrend(); renderCloud();
     $('save').disabled = S.saving;
   }
 
@@ -821,7 +968,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   }
   function setError(msg){ const e = $('formErr'); e.textContent = msg||''; e.hidden = !msg; }
   function resetSlip(){
-    S.editing = null; S.confirmDel = false;
+    S.editing = null; S.confirmDel = false; S.catTouched = false; S.warnKey = '';
+    $('slipHint').hidden = true; $('slipWarn').hidden = true;
     $('slipTitle').textContent = 'เพิ่มรายการ'; $('save').textContent = 'บันทึก';
     $('del').hidden = true; $('cancel').hidden = true; $('del').textContent = 'ลบ';
     $('recurWrap').hidden = false; $('fRecur').checked = false;
@@ -836,7 +984,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   }
   function closeSlip(){ $('slip').classList.remove('open'); $('scrim').hidden = true; }
   function startEdit(e){
-    S.editing = e.id; S.confirmDel = false;
+    S.editing = e.id; S.confirmDel = false; S.catTouched = true;
+    $('slipHint').hidden = true; $('slipWarn').hidden = true;
     $('slipTitle').textContent = 'แก้ไขรายการ'; $('save').textContent = 'บันทึกการแก้ไข';
     $('del').hidden = false; $('cancel').hidden = false; $('del').textContent = 'ลบ';
     $('recurWrap').hidden = true; $('fRecur').checked = false;
@@ -863,6 +1012,10 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const prev = S.editing ? S.entries.find(e => e.id === S.editing) : null;
     const doc = { type:S.type, amount:Math.round(amount*100)/100, category, note:$('fNote').value.trim(), date,
       createdAt: prev?.createdAt ?? Date.now() };
+    if (!prev) {
+      const warn = checkEntry(doc), key = [doc.type,doc.amount,doc.category,doc.date].join('|');
+      if (warn && S.warnKey !== key) { S.warnKey = key; $('slipWarn').textContent = warn; $('slipWarn').hidden = false; $('save').textContent = 'ยืนยันบันทึก'; return; }
+    }
     if (!prev && $('fRecur').checked) {
       const now = Date.now();
       try {
@@ -991,9 +1144,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   $('trend').onclick = e => { const ym = e.target.dataset?.ym; if (ym) goMonth(ym); };
   $('trend').onpointermove = e => { const ym = e.target.dataset?.ym; if (ym && ym !== hoverYm) { hoverYm = ym; readout(ym); } };
   $('trend').onpointerleave = () => { hoverYm = null; readout(S.ym); };
-  $('tExpense').onclick = () => setType('expense');
-  $('tIncome').onclick = () => setType('income');
-  $('fCategory').onchange = e => { const n = e.target.value === NEW_CAT; $('newCatWrap').hidden = !n; if (n) $('fNewCat').focus(); };
+  $('tExpense').onclick = () => { setType('expense'); applySuggestion(); clearWarn(); };
+  $('tIncome').onclick = () => { setType('income'); applySuggestion(); clearWarn(); };
+  $('fNote').oninput = () => { applySuggestion(); clearWarn(); };
+  $('fAmount').oninput = clearWarn;
+  $('fDate').oninput = clearWarn;
+  $('insightBar').onclick = () => setTab('summary');
+  $('fCategory').onchange = e => { S.catTouched = true; $('slipHint').hidden = true; clearWarn(); const n = e.target.value === NEW_CAT; $('newCatWrap').hidden = !n; if (n) $('fNewCat').focus(); };
   $('slip').onsubmit = submit;
   $('del').onclick = removeCurrent;
   $('cancel').onclick = () => { resetSlip(); closeSlip(); };
