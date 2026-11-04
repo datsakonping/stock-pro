@@ -608,7 +608,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.i-t.o)}</td></tr>`;
     }).join('');
   }
-  const AI_SUGGEST = ['เดือนนี้จ่ายอะไรเยอะสุด', 'เดือนนี้เหลือใช้เท่าไหร่', 'ลดค่าใช้จ่ายตรงไหนดี'];
+  function aiSuggestions(){
+    const ym = currentYm(), now = totals(ym), prev = totals(shiftYm(ym,-1)), hasBudget = Object.keys(budgets.map).length > 0, list = [];
+    if (now.o > 0) list.push('เดือนนี้จ่ายอะไรเยอะสุด');
+    if (now.o > 0 && hasBudget) list.push('งบหมวดไหนใกล้เต็ม');
+    if (now.o > 0 && prev.o > 0) list.push('จ่ายมากกว่าเดือนก่อนไหม');
+    if (now.o > 0) list.push('ลดค่าใช้จ่ายตรงไหนดี');
+    if (now.i > 0 && !hasBudget) list.push('ช่วยแบ่งงบจากรายรับเดือนนี้');
+    if (now.i > 0 || now.o > 0) list.push('เดือนนี้เหลือเงินเท่าไหร่');
+    list.push('อยากเก็บเงินเดือนละ 2,000 ต้องทำยังไง');
+    return list.slice(0,4);
+  }
   function renderAi(){
     const log = $('aiLog');
     const msgs = S.ai.length ? S.ai : [{ who:'bot', text:'สวัสดีครับ บอกรายการที่อยากจด หรือถามเรื่องเงินของคุณได้เลย' }];
@@ -619,7 +629,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       }
       return `<div class="msg${m.who==='me'?' me':''}${m.wait?' wait':''}${m.bad?' bad':''}">${esc(m.text)}</div>`;
     }).join('');
-    $('aiChips').innerHTML = S.ai.length ? '' : AI_SUGGEST.map(t => `<button type="button" data-ask="${esc(t)}">${esc(t)}</button>`).join('');
+    $('aiChips').innerHTML = S.ai.length ? '' : aiSuggestions().map(t => `<button type="button" data-ask="${esc(t)}">${esc(t)}</button>`).join('');
     $('aiSend').disabled = S.aiBusy;
     if (S.tab === 'ai' && S.ai.length) $('aiForm').scrollIntoView({block:'nearest'});
   }
