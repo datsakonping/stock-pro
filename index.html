@@ -150,6 +150,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 .readout{min-height:1.6em;font-size:.86rem;color:var(--muted);margin:4px 0 0;font-variant-numeric:tabular-nums}
 
 .data-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cloud{display:grid;gap:10px;margin-top:10px;min-width:0}
+.cloud input{height:42px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);padding:0 10px;color:var(--ink);width:100%;min-width:0;font-size:1rem}
 .fab{display:none}
 .scrim{position:fixed;inset:0;background:rgba(10,18,36,.45);z-index:20}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:7px 14px;border-radius:6px;z-index:40;font-size:.92rem;max-width:calc(100vw - 32px)}
@@ -272,13 +274,35 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
     <section class="chart" aria-labelledby="dataH">
       <h2 id="dataH">สำรองข้อมูล</h2>
-      <p class="muted">รายการเก็บอยู่ในเบราว์เซอร์นี้เท่านั้น สำรองไว้เป็นระยะ และใช้ไฟล์สำรองย้ายไปเครื่องอื่นได้</p>
+      <p class="muted">รายการเก็บในเบราว์เซอร์นี้ ถ้ายังไม่เชื่อม Cloud ควรสำรองไว้เป็นระยะ และใช้ไฟล์สำรองย้ายไปเครื่องอื่นได้</p>
       <div class="data-actions">
         <button id="backup" class="ghost" type="button">สำรองข้อมูล</button>
         <button id="restore" class="ghost" type="button">กู้คืนข้อมูล</button>
         <button id="export" class="ghost" type="button">ส่งออก CSV</button>
       </div>
       <input id="restoreFile" type="file" accept=".json,application/json" hidden>
+    </section>
+
+    <section class="chart" aria-labelledby="cloudH">
+      <h2 id="cloudH">ซิงก์ผ่าน Cloud</h2>
+      <p id="cloudStatus" class="muted" role="status"></p>
+      <div id="cloudForm" class="cloud">
+        <label>ที่อยู่ Worker
+          <input id="cUrl" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://ledger-api.ชื่อของคุณ.workers.dev">
+        </label>
+        <label>รหัสซิงก์
+          <input id="cKey" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="กดสร้างรหัส หรือวางรหัสเดิม">
+        </label>
+        <div class="data-actions">
+          <button id="cNew" class="ghost" type="button">สร้างรหัส</button>
+          <button id="cCopy" class="ghost" type="button">คัดลอกรหัส</button>
+          <button id="cConnect" class="ghost" type="button">เชื่อมต่อ</button>
+        </div>
+      </div>
+      <div id="cloudOn" class="data-actions" hidden>
+        <button id="cSync" class="ghost" type="button">ซิงก์เดี๋ยวนี้</button>
+        <button id="cOff" class="ghost" type="button">ยกเลิกการเชื่อมต่อ</button>
+      </div>
     </section>
   </aside>
 </main>
@@ -431,7 +455,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const balMap = new Map(); let run = 0;
     for (const e of sorted()) { run += signed(e); balMap.set(e.id,run); }
     const open = renderHeader();
-    renderFilter(); renderRows(balMap,open); renderNotice(); renderCats(); renderTrend();
+    renderFilter(); renderRows(balMap,open); renderNotice(); renderCats(); renderTrend(); renderCloud();
     $('save').disabled = S.saving;
   }
 
@@ -558,6 +582,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   $('q').oninput = e => { S.q = e.target.value; render(); };
   $('fcat').onchange = e => { S.cat = e.target.value; render(); };
   $('export').onclick = exportCsv;
+  $('cNew').onclick = () => { const b = crypto.getRandomValues(new Uint8Array(32)); $('cKey').value = [...b].map(x => x.toString(16).padStart(2,'0')).join(''); toast('สร้างรหัสแล้ว คัดลอกไปตั้งค่าใน Cloudflare'); };
+  $('cCopy').onclick = async () => {
+    const v = $('cKey').value; if (!v) { toast('ยังไม่มีรหัสให้คัดลอก'); return; }
+    try { await navigator.clipboard.writeText(v); toast('คัดลอกรหัสแล้ว'); }
+    catch { $('cKey').select(); toast('เลือกข้อความแล้ว กดคัดลอกเองได้เลย'); }
+  };
+  $('cConnect').onclick = connect;
+  $('cSync').onclick = () => sync();
+  $('cOff').onclick = disconnect;
+  addEventListener('online', () => sync());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sync(); });
   $('backup').onclick = backup;
   $('restore').onclick = () => $('restoreFile').click();
   $('restoreFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) restore(f); };
@@ -582,26 +617,134 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     if (!Array.isArray(list)) return [];
     return list.filter(e => e && typeof e.id === 'string' && (e.type === 'income' || e.type === 'expense') &&
       /^\d{4}-\d{2}-\d{2}$/.test(e.date||'') && Number.isFinite(Number(e.amount)) && Number(e.amount) > 0)
-      .map(e => ({ id:e.id, type:e.type, amount:Number(e.amount), category:String(e.category||'อื่นๆ'), note:String(e.note||''), date:e.date, createdAt:Number(e.createdAt)||0 }));
+      .map(e => ({ id:e.id, type:e.type, amount:Number(e.amount), category:String(e.category||'อื่นๆ'), note:String(e.note||''), date:e.date, createdAt:Number(e.createdAt)||0, updatedAt:Number(e.updatedAt)||Number(e.createdAt)||1 }));
   }
-  const KEY = 'ledger-entries-v1';
+  const KEY = 'ledger-entries-v1', TOMB = 'ledger-deleted-v1', DIRTY = 'ledger-dirty-v1', CLOUD = 'ledger-cloud-v1';
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
   const readAll = () => { try { return clean(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { return []; } };
+  const readJson = (k,d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+  let tombs = readJson(TOMB,{}), dirty = new Set(readJson(DIRTY,[])), cloud = readJson(CLOUD,null);
+  let syncing = false, syncAgain = false, syncTimer = null, lastSync = null, cloudErr = '';
+  function saveMeta(){
+    if (!canPersist) return;
+    localStorage.setItem(TOMB, JSON.stringify(tombs));
+    localStorage.setItem(DIRTY, JSON.stringify([...dirty]));
+    if (cloud) localStorage.setItem(CLOUD, JSON.stringify(cloud)); else localStorage.removeItem(CLOUD);
+  }
   function commit(next){
     if (canPersist) localStorage.setItem(KEY, JSON.stringify(next));
     S.entries = next;
+    saveMeta();
   }
+  const mark = id => { if (cloud) dirty.add(id); };
   const store = {
-    set(id, doc){ commit([...S.entries.filter(e => e.id !== id), {id, ...doc}]); },
-    remove(id){ commit(S.entries.filter(e => e.id !== id)); },
-    merge(list){ const ids = new Set(list.map(e => e.id)); commit([...S.entries.filter(e => !ids.has(e.id)), ...list]); },
+    set(id, doc){ delete tombs[id]; mark(id); commit([...S.entries.filter(e => e.id !== id), {id, ...doc, updatedAt:Date.now()}]); queueSync(); },
+    remove(id){ tombs[id] = Date.now(); mark(id); commit(S.entries.filter(e => e.id !== id)); queueSync(); },
+    merge(list){
+      const now = Date.now(), ids = new Set(list.map(e => e.id));
+      for (const id of ids) { delete tombs[id]; mark(id); }
+      commit([...S.entries.filter(e => !ids.has(e.id)), ...list.map(e => ({...e, updatedAt:now}))]); queueSync();
+    },
   };
+
+  /* ---------- cloud sync: last change wins, per entry ---------- */
+  function queueSync(){ if (!cloud) return; clearTimeout(syncTimer); syncTimer = setTimeout(sync, 800); }
+  async function post(body){
+    let res;
+    try {
+      res = await fetch(cloud.url + '/sync', { method:'POST', headers:{ 'content-type':'application/json', authorization:'Bearer ' + cloud.key },
+        body:JSON.stringify(body), signal:AbortSignal.timeout(20000) });
+    } catch { throw {code:'offline'}; }
+    if (res.status === 401) throw {code:'auth'};
+    if (!res.ok) { let c = ''; try { c = (await res.json()).error; } catch {} throw {code:c || 'server'}; }
+    return res.json();
+  }
+  function applyRows(rows){
+    const map = new Map(S.entries.map(e => [e.id,e]));
+    let changed = false;
+    for (const r of rows) {
+      const local = map.get(r.id)?.updatedAt ?? tombs[r.id] ?? 0;
+      if (r.updated_at <= local) continue;
+      if (r.deleted) { map.delete(r.id); tombs[r.id] = r.updated_at; }
+      else {
+        let parsed = []; try { parsed = clean([{...JSON.parse(r.data), id:r.id, updatedAt:r.updated_at}]); } catch {}
+        if (!parsed.length) continue;
+        map.set(r.id, parsed[0]); delete tombs[r.id];
+      }
+      dirty.delete(r.id); changed = true;
+    }
+    if (changed) commit([...map.values()]);
+  }
+  async function sync(){
+    if (!cloud) return;
+    if (syncing) { syncAgain = true; return; }
+    clearTimeout(syncTimer);
+    syncing = true; cloudErr = ''; renderCloud();
+    try {
+      for (;;) {
+        const map = new Map(S.entries.map(e => [e.id,e]));
+        const ids = [...dirty].slice(0,100);
+        const stamp = id => map.get(id)?.updatedAt ?? tombs[id] ?? 1;
+        const sent = new Map(ids.map(id => [id, stamp(id)]));
+        const changes = ids.map(id => {
+          const e = map.get(id);
+          if (!e) return { id, updatedAt:stamp(id), deleted:true, data:null };
+          const {id:_, updatedAt, ...data} = e;
+          return { id, updatedAt, deleted:false, data };
+        });
+        const res = await post({ cursor:cloud.cursor, changes });
+        applyRows(res.rows);
+        const nowMap = new Map(S.entries.map(e => [e.id,e]));
+        for (const [id,t] of sent) if ((nowMap.get(id)?.updatedAt ?? tombs[id] ?? 1) === t) dirty.delete(id);
+        cloud.cursor = res.cursor; saveMeta();
+        if (!res.more && !dirty.size) break;
+      }
+      lastSync = new Date();
+    } catch (e) { cloudErr = e?.code || 'server'; }
+    syncing = false;
+    render();
+    if (syncAgain) { syncAgain = false; sync(); }
+  }
+  async function connect(){
+    const url = $('cUrl').value.trim().replace(/\/+$/,''), key = $('cKey').value.trim();
+    if (!/^https:\/\/\S+$/.test(url)) { cloudErr = 'bad-url'; renderCloud(); return; }
+    if (key.length < 32) { cloudErr = 'bad-key'; renderCloud(); return; }
+    cloud = { url, key, cursor:0 };
+    dirty = new Set([...S.entries.map(e => e.id), ...Object.keys(tombs)]);
+    saveMeta();
+    await sync();
+    if (cloudErr) {
+      const why = cloudErr;
+      cloud = null; dirty = new Set(); saveMeta(); cloudErr = why; renderCloud();
+    } else { $('cKey').value = ''; toast('เชื่อมต่อ Cloud แล้ว'); }
+  }
+  function disconnect(){
+    cloud = null; dirty = new Set(); cloudErr = ''; lastSync = null; clearTimeout(syncTimer); saveMeta(); render();
+    toast('ยกเลิกการเชื่อมต่อแล้ว รายการในเครื่องยังอยู่');
+  }
+  function renderCloud(){
+    $('cloudForm').hidden = !!cloud;
+    $('cloudOn').hidden = !cloud;
+    const pad2 = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const errs = { 'bad-url':'กรอกที่อยู่ Worker ที่ขึ้นต้นด้วย https://', 'bad-key':'รหัสซิงก์ต้องยาวอย่างน้อย 32 ตัวอักษร',
+      auth:'รหัสซิงก์ไม่ตรงกับใน Cloudflare ตรวจค่า LEDGER_KEY', missing_db:'Worker ยังไม่ได้ผูกฐานข้อมูล ตั้ง D1 binding ชื่อ DB',
+      missing_key:'Worker ยังไม่มีรหัส ตั้ง Secret ชื่อ LEDGER_KEY ให้ยาวอย่างน้อย 32 ตัวอักษร',
+      offline:'ติดต่อ Worker ไม่ได้ ตรวจอินเทอร์เน็ตและที่อยู่ Worker' };
+    let msg;
+    if (cloudErr) msg = (errs[cloudErr] || 'ซิงก์ไม่สำเร็จ ลองใหม่อีกครั้ง') + (cloud && dirty.size ? ` · รอซิงก์ ${dirty.size} รายการ` : '');
+    else if (!cloud) msg = 'ยังไม่ได้เชื่อมต่อ รายการอยู่ในเครื่องนี้เท่านั้น';
+    else if (syncing) msg = 'กำลังซิงก์…';
+    else if (lastSync) msg = `ซิงก์ล่าสุด ${pad2(lastSync)} น.`;
+    else msg = 'เชื่อมต่อแล้ว';
+    $('cloudStatus').textContent = msg;
+  }
   try { const k = KEY + '-probe'; localStorage.setItem(k,'1'); localStorage.removeItem(k); } catch { canPersist = false; }
   S.entries = readAll();
   addEventListener('storage', e => { if (e.key === KEY) { S.entries = readAll(); render(); } });
 
   resetSlip();
   render();
+  sync();
 })();
 </script>
 </body>
