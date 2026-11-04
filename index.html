@@ -18,7 +18,7 @@
 body{margin:0}
 img{max-width:100%}
 [hidden]{display:none!important}
-/* Layout concept: a Thai bank passbook. Navy cover band with punched holes, ruled ledger pages,
+/* Layout concept: a Thai bank passbook. Navy cover band, ruled ledger pages,
    printed mono figures with a running balance column, and a side slip for writing a new entry. */
 :root{
   --paper:#EEF2F6; --sheet:#FFFFFF; --rule:#F5F7FA; --line:#D5DDE7;
@@ -73,12 +73,10 @@ h1 svg{flex:none;border-radius:7px}
 .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 40px}
 .hero-label{color:var(--band-muted);font-size:.9rem}
 .hero-num{font:600 clamp(2rem,7vw,3rem)/1.15 var(--figure);font-variant-numeric:tabular-nums;letter-spacing:-.02em;overflow-wrap:anywhere}
-.hero-num small{font:500 .55em var(--body);margin-right:.15em;color:var(--band-muted)}
 .trio{display:flex;flex-wrap:wrap;gap:6px 28px}
 .trio div{display:grid}
 .trio span{color:var(--band-muted);font-size:.82rem}
 .trio b{font:500 1.05rem/1.4 var(--figure);font-variant-numeric:tabular-nums}
-.perf{height:13px;background:radial-gradient(circle at 12px 0,var(--paper) 4.5px,transparent 5px) repeat-x 0 0/24px 13px,var(--band)}
 
 /* layout */
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start;padding-block:12px 40px}
@@ -287,7 +285,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     <div class="hero">
       <div>
         <div class="hero-label" id="heroLabel">คงเหลือสิ้นเดือน</div>
-        <div class="hero-num"><small>฿</small><span id="heroNum">0.00</span></div>
+        <div class="hero-num"><span id="heroNum">0.00</span></div>
       </div>
       <div class="trio">
         <div><span>รับเดือนนี้</span><b id="tIn">0.00</b></div>
@@ -296,7 +294,6 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     </div>
   </div>
 </header>
-<div class="perf" aria-hidden="true"></div>
 
 <main class="wrap layout">
   <div class="main-col">
