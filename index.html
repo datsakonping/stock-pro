@@ -61,17 +61,18 @@ h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
 /* cover band */
 .band{background:var(--band);color:var(--band-fg)}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:25;background:var(--band)}
-.band .wrap{padding-block:calc(18px + env(safe-area-inset-top,0px)) 14px;display:grid;gap:14px}
-.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px}
+.band .wrap{padding-block:calc(12px + env(safe-area-inset-top,0px)) 12px;display:grid;gap:10px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.top h1{flex:1 1 auto;min-width:0}
 h1{font-size:1.05rem;font-weight:600;display:flex;align-items:center;gap:8px}
 h1 svg{flex:none;border-radius:7px}
 .month{display:flex;align-items:center;gap:4px}
-.month strong{font-family:var(--display);font-weight:600;min-width:9.5em;text-align:center}
+.month strong{font-family:var(--display);font-weight:600;min-width:8.5em;text-align:center}
 .month button{background:none;border:1px solid var(--band-line);color:inherit;border-radius:6px;min-width:36px;height:36px;padding:0 10px}
 .month button:hover{background:var(--band-line)}
 .hero{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 40px}
 .hero-label{color:var(--band-muted);font-size:.9rem}
-.hero-num{font:600 clamp(2.1rem,7.5vw,3.4rem)/1.15 var(--figure);font-variant-numeric:tabular-nums;letter-spacing:-.02em;overflow-wrap:anywhere}
+.hero-num{font:600 clamp(2rem,7vw,3rem)/1.15 var(--figure);font-variant-numeric:tabular-nums;letter-spacing:-.02em;overflow-wrap:anywhere}
 .hero-num small{font:500 .55em var(--body);margin-right:.15em;color:var(--band-muted)}
 .trio{display:flex;flex-wrap:wrap;gap:6px 28px}
 .trio div{display:grid}
@@ -81,6 +82,24 @@ h1 svg{flex:none;border-radius:7px}
 
 /* layout */
 .layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start;padding-block:12px 40px}
+.main-col{display:grid;gap:14px;min-width:0}
+.main-col>*{min-width:0}
+.pane{display:grid;gap:26px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{display:flex;align-items:center;gap:7px;background:none;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:8px 14px;height:44px;color:var(--muted);font-weight:500}
+.tabs svg,.add svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.add{display:none}
+.sum-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;margin:0 0 10px}
+.sum-grid dt{font-size:.84rem;color:var(--muted)}
+.sum-grid dd{margin:0;font-size:1.12rem;font-weight:500;overflow-wrap:anywhere}
+.tbl-wrap{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tbl th{text-align:right;font-weight:500;color:var(--muted);font-size:.82rem;padding:6px 0 6px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{text-align:right;font-family:var(--figure);font-variant-numeric:tabular-nums;padding:7px 0 7px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th:first-child,.tbl td:first-child{text-align:left;padding-left:0;font-family:var(--body)}
+.tbl tr.now td{font-weight:600}
 .layout>*{min-width:0}
 aside{display:grid;gap:24px}
 
@@ -107,6 +126,7 @@ button.row:hover{background:color-mix(in srgb,var(--accent) 9%,transparent)}
 .row>span{padding:9px 10px;display:block;min-width:0}
 .d{font-size:.92rem;color:var(--muted)}
 .d .y{display:none}
+.m-date{display:none}
 .nm{display:block;font-weight:500;overflow-wrap:anywhere}
 .ct{display:block;font-size:.84rem;color:var(--muted)}
 .num{font-family:var(--figure);font-variant-numeric:tabular-nums;text-align:right;border-left:1px solid var(--line);font-size:.93rem;white-space:nowrap}
@@ -138,19 +158,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
 /* charts */
 .chart h2{margin-bottom:8px}
-.cat{display:grid;width:100%;gap:2px;background:none;border:0;padding:5px 0;text-align:left}
 .cat-line{display:flex;justify-content:space-between;gap:10px;font-size:.92rem}
 .cat-line .fig{font-size:.86rem;white-space:nowrap}
 .track{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
 .fill{display:block;height:100%;background:var(--out);border-radius:0 4px 4px 0}
-.cat:hover .cat-line span:first-child{color:var(--accent)}
-.cat[aria-pressed="true"] .cat-line span:first-child{font-weight:600;color:var(--accent)}
 .muted{color:var(--muted);font-size:.92rem;margin:0}
 .head-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .chart .head-row h2{margin:0}
 .bud-sum{margin:0 0 6px;font-size:.92rem;color:var(--muted)}
 .bud-sum b{color:var(--ink);font-weight:500}
-.bud{display:grid;gap:2px;padding:6px 0}
+.bud{display:grid;gap:3px;width:100%;padding:8px 0;background:none;border:0;text-align:left;border-bottom:1px solid var(--line)}
+.bud:hover .cat-line>span:first-child{color:var(--accent)}
 .fill.b-ok{background:var(--accent)}
 .fill.b-near{background:var(--amber)}
 .fill.b-over{background:var(--out)}
@@ -183,9 +201,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 .data-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .cloud{display:grid;gap:10px;margin-top:10px;min-width:0}
 .cloud input{height:42px;border:1px solid var(--line);border-radius:6px;background:var(--sheet);padding:0 10px;color:var(--ink);width:100%;min-width:0;font-size:1rem}
-.fab{display:none}
-.title-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:1 1 240px;min-width:0}
-.gear{display:grid;place-items:center;width:44px;height:44px;flex:none;background:none;border:1px solid var(--band-line);border-radius:6px;color:inherit}
+.gear{display:grid;place-items:center;width:40px;height:40px;flex:none;background:none;border:1px solid var(--band-line);border-radius:6px;color:inherit}
 .gear:hover{background:var(--band-line)}
 .settings{position:fixed;left:0;right:0;bottom:0;z-index:30;max-height:88%;overflow:auto;display:grid;gap:24px;align-content:start;background:var(--paper);border-radius:12px 12px 0 0;box-shadow:var(--shadow);
   padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
@@ -193,13 +209,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 .settings .close{display:block}
 @media (min-width:901px){.settings{left:auto;top:0;width:400px;max-height:none;border-radius:0}}
 .scrim{position:fixed;inset:0;background:rgba(10,18,36,.45);z-index:20}
-.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:7px 14px;border-radius:6px;z-index:40;font-size:.92rem;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(144px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:7px 14px;border-radius:6px;z-index:40;font-size:.92rem;max-width:calc(100vw - 32px)}
 
 @media (max-width:900px){
-  .layout{grid-template-columns:minmax(0,1fr);padding-bottom:96px}
-  .fab{display:block;position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--paper);border-top:1px solid var(--line);
-    padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-  .fab button{width:100%}
+  .layout{grid-template-columns:minmax(0,1fr);padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
+  .main-col{gap:12px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:15;justify-content:space-around;gap:0;background:var(--sheet);border-top:1px solid var(--line);border-bottom:0;
+    padding:4px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+  .tabs button{flex:1 1 0;flex-direction:column;gap:1px;height:52px;padding:4px 0;margin:0;border:0;font-size:.76rem;justify-content:center}
+  .tabs button[aria-current="page"]{border:0}
+  .add{display:grid;place-items:center;position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:15;width:56px;height:56px;border:0;border-radius:50%;background:var(--accent);color:var(--accent-fg);box-shadow:0 6px 16px rgba(20,48,107,.3)}
+  .add svg{width:26px;height:26px}
   .slip{position:fixed;left:0;right:0;bottom:0;z-index:30;max-height:90%;overflow:auto;border-radius:12px 12px 0 0;border-width:1px 0 0;box-shadow:var(--shadow);
     padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
     transform:translateY(105%);visibility:hidden;transition:transform .18s ease-out,visibility 0s .18s}
@@ -208,17 +228,20 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 }
 @media (max-width:640px){
   .cols{display:none}
-  .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"it amt" "d bal"}
+  .row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"it amt" "it bal"}
+  .row .d{display:none}
+  .m-date{display:inline}
+  .h1-text{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .top h1{flex:0 0 auto}
+  .month{flex:1 1 auto;justify-content:center}
+  .month strong{min-width:0;flex:0 1 auto;padding:0 6px}
   .row>span{padding:0;border:0}
-  .row{padding:9px 12px;gap:0 12px}
-  .it{grid-area:it}
+  .row{padding:8px 12px;gap:0 12px}
+  .row .it{grid-area:it}
   .row .in,.row .out{grid-area:amt;font-weight:500}
   .row .void{display:none}
-  .d{grid-area:d;font-size:.84rem}
-  .d .y{display:inline}
   .bal{grid-area:bal;font-size:.82rem;color:var(--muted);font-weight:400!important}
-  .bal::before{content:"คงเหลือ ";font-family:var(--body)}
-  .hero{gap:10px}
+  .hero{gap:6px 20px;align-items:flex-end}
   .trio{gap:6px 22px}
 }
 @media (prefers-reduced-motion:reduce){.slip,.slip.open{transition:none}}
@@ -229,18 +252,16 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 <header class="band">
   <div class="wrap">
     <div class="top">
-      <div class="title-row">
-        <h1><svg viewBox="0 0 512 512" width="30" height="30" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#14306B"/><g transform="translate(-20 0)"><path d="M196 156H288A50 50 0 0 1 288 256H196M288 256H304A54 54 0 0 1 304 364H196M196 156V364" fill="none" stroke="#F1F5FF" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/><path d="M256 100V132" fill="none" stroke="#2A9DB8" stroke-width="40" stroke-linecap="round"/><path d="M256 388V412" fill="none" stroke="#DE6B3C" stroke-width="40" stroke-linecap="round"/></g></svg>บัญชีรายรับรายจ่าย</h1>
-        <button id="openSettings" class="gear" type="button" aria-label="ตั้งค่า">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
-        </button>
-      </div>
+      <h1><svg viewBox="0 0 512 512" width="30" height="30" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#14306B"/><g transform="translate(-20 0)"><path d="M196 156H288A50 50 0 0 1 288 256H196M288 256H304A54 54 0 0 1 304 364H196M196 156V364" fill="none" stroke="#F1F5FF" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/><path d="M256 100V132" fill="none" stroke="#2A9DB8" stroke-width="40" stroke-linecap="round"/><path d="M256 388V412" fill="none" stroke="#DE6B3C" stroke-width="40" stroke-linecap="round"/></g></svg><span class="h1-text">บัญชีรายรับรายจ่าย</span></h1>
       <div class="month" role="group" aria-label="เลือกเดือน">
         <button id="prev" type="button" aria-label="เดือนก่อนหน้า">‹</button>
         <strong id="mLabel" aria-live="polite"></strong>
         <button id="next" type="button" aria-label="เดือนถัดไป">›</button>
         <button id="today" type="button" hidden>เดือนนี้</button>
       </div>
+      <button id="openSettings" class="gear" type="button" aria-label="ตั้งค่า">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+        </button>
     </div>
     <div class="hero">
       <div>
@@ -248,7 +269,6 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         <div class="hero-num"><small>฿</small><span id="heroNum">0.00</span></div>
       </div>
       <div class="trio">
-        <div><span>ยอดยกมา</span><b id="tOpen">0.00</b></div>
         <div><span>รับเดือนนี้</span><b id="tIn">0.00</b></div>
         <div><span>จ่ายเดือนนี้</span><b id="tOut">0.00</b></div>
       </div>
@@ -258,7 +278,13 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 <div class="perf" aria-hidden="true"></div>
 
 <main class="wrap layout">
-  <section aria-label="รายการบัญชี">
+  <div class="main-col">
+    <nav class="tabs" aria-label="เมนูหลัก">
+      <button type="button" data-tab="list"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg><span>รายการ</span></button>
+      <button type="button" data-tab="budget"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v9l6.4 6.4"></path></svg><span>งบ</span></button>
+      <button type="button" data-tab="summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20v-6M12 20V5M19 20v-9"></path></svg><span>สรุป</span></button>
+    </nav>
+    <section id="tab-list" aria-label="รายการบัญชี">
     <div class="tools">
       <input id="q" type="search" placeholder="ค้นหารายการ" aria-label="ค้นหารายการ">
       <select id="fcat" aria-label="กรองตามหมวด"></select>
@@ -271,6 +297,56 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       <div id="rows"></div>
     </div>
   </section>
+
+  <div id="tab-budget" class="pane" hidden>
+    <section class="chart" aria-labelledby="budgetH">
+      <div class="head-row">
+        <h2 id="budgetH">งบรายเดือน</h2>
+        <button id="bEdit" class="ghost" type="button">ตั้งงบ</button>
+      </div>
+      <div id="budget"></div>
+      <form id="budgetForm" novalidate hidden>
+        <p class="muted" style="margin-bottom:10px">ใส่งบต่อเดือนของหมวดที่ต้องการ งบนี้ใช้กับทุกเดือน ปล่อยว่างถ้าไม่ตั้งงบ</p>
+        <div id="budgetFields" class="bfields"></div>
+        <p id="budgetErr" class="err" role="alert" hidden></p>
+        <div class="data-actions">
+          <button id="bSave" class="ghost" type="submit">บันทึกงบ</button>
+          <button id="bCancel" class="ghost" type="button">ยกเลิก</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="chart" aria-labelledby="recurH">
+      <h2 id="recurH">รายการประจำ</h2>
+      <div id="recurList"></div>
+    </section>
+    </div>
+    <div id="tab-summary" class="pane" hidden>
+      <section class="chart" aria-labelledby="sumH">
+        <h2 id="sumH">ภาพรวมเดือนนี้</h2>
+        <dl class="sum-grid">
+          <div><dt>ยอดยกมา</dt><dd id="tOpen" class="fig">0.00</dd></div>
+          <div><dt>รับ</dt><dd id="sIn" class="fig">0.00</dd></div>
+          <div><dt>จ่าย</dt><dd id="sOut" class="fig">0.00</dd></div>
+          <div><dt>รับลบจ่าย</dt><dd id="sNet" class="fig">0.00</dd></div>
+        </dl>
+        <p id="sCompare" class="muted"></p>
+      </section>
+    <section class="chart" aria-labelledby="trendH">
+      <h2 id="trendH">6 เดือนล่าสุด</h2>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--in)"></i>รายรับ</span>
+        <span><i style="background:var(--out)"></i>รายจ่าย</span>
+      </div>
+      <svg id="trend" viewBox="0 0 340 176" role="img" aria-label="กราฟแท่งรายรับและรายจ่าย 6 เดือนล่าสุด"></svg>
+      <p id="readout" class="readout"></p>
+    </section>
+      <section class="chart" aria-labelledby="tblH">
+        <h2 id="tblH">ตัวเลขรายเดือน</h2>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">เดือน</th><th scope="col">รับ</th><th scope="col">จ่าย</th><th scope="col">รับลบจ่าย</th></tr></thead><tbody id="sTable"></tbody></table></div>
+      </section>
+    </div>
+  </div>
 
   <aside>
     <form id="slip" class="slip" novalidate>
@@ -301,43 +377,6 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         <button id="cancel" class="link" type="button" hidden>ยกเลิก</button>
       </div>
     </form>
-
-    <section class="chart" aria-labelledby="budgetH">
-      <div class="head-row">
-        <h2 id="budgetH">งบรายเดือน</h2>
-        <button id="bEdit" class="ghost" type="button">ตั้งงบ</button>
-      </div>
-      <div id="budget"></div>
-      <form id="budgetForm" novalidate hidden>
-        <p class="muted" style="margin-bottom:10px">ใส่งบต่อเดือนของหมวดที่ต้องการ งบนี้ใช้กับทุกเดือน ปล่อยว่างถ้าไม่ตั้งงบ</p>
-        <div id="budgetFields" class="bfields"></div>
-        <p id="budgetErr" class="err" role="alert" hidden></p>
-        <div class="data-actions">
-          <button id="bSave" class="ghost" type="submit">บันทึกงบ</button>
-          <button id="bCancel" class="ghost" type="button">ยกเลิก</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="chart" aria-labelledby="recurH">
-      <h2 id="recurH">รายการประจำ</h2>
-      <div id="recurList"></div>
-    </section>
-
-    <section class="chart" aria-labelledby="catH">
-      <h2 id="catH">จ่ายไปกับอะไรบ้าง</h2>
-      <div id="cats"></div>
-    </section>
-
-    <section class="chart" aria-labelledby="trendH">
-      <h2 id="trendH">6 เดือนล่าสุด</h2>
-      <div class="legend" aria-hidden="true">
-        <span><i style="background:var(--in)"></i>รายรับ</span>
-        <span><i style="background:var(--out)"></i>รายจ่าย</span>
-      </div>
-      <svg id="trend" viewBox="0 0 340 176" role="img" aria-label="กราฟแท่งรายรับและรายจ่าย 6 เดือนล่าสุด"></svg>
-      <p id="readout" class="readout"></p>
-    </section>
   </aside>
 </main>
 
@@ -396,7 +435,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     </section>
 </div>
 
-<div class="fab"><button id="openSlip" class="primary" type="button">+ เพิ่มรายการ</button></div>
+<button id="openSlip" class="add" type="button" aria-label="เพิ่มรายการ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
 <div id="scrim" class="scrim" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>
 
@@ -421,7 +460,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const money = s => { const a = Math.abs(s)/100; const t = a.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); return (s<0?'−':'') + t; };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'' };
+  const S = { entries:[], ym:currentYm(), q:'', cat:'', type:'expense', editing:null, saving:false, tab:'list', confirmDel:false, editBudget:false, confirmStop:null, confirmFriend:null, friends:[], friendInvite:'' };
   let delTimer = null, toastTimer = null, hoverYm = null, stopTimer = null, canPersist = true, budgets = { map:{}, updatedAt:0 }, recurring = [];
 
   const sorted = () => [...S.entries].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt||0)-(b.createdAt||0));
@@ -463,7 +502,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       (!S.cat || e.category === S.cat) &&
       (!q || `${e.note||''} ${e.category}`.toLowerCase().includes(q)));
     if (!list.length && !q && !S.cat) {
-      $('rows').innerHTML = `<div class="empty-state"><strong>ยังไม่มีรายการใน${esc(monthName(S.ym))}</strong>กด “เพิ่มรายการ” เพื่อเริ่มจดรายการแรก</div>`;
+      $('rows').innerHTML = `<div class="empty-state"><strong>ยังไม่มีรายการใน${esc(monthName(S.ym))}</strong>กดปุ่มเพิ่มรายการเพื่อเริ่มจด</div>`;
       return;
     }
     if (!list.length) {
@@ -477,7 +516,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       const sub = e.note ? e.category : (isIn ? 'รายรับ' : 'รายจ่าย');
       return `<button type="button" class="row" data-id="${esc(e.id)}" aria-label="แก้ไข ${esc(title)} ${amt} บาท">
         <span class="d">${day} ${MON[m-1]}<span class="y"> ${y}</span></span>
-        <span class="it"><span class="nm">${esc(title)}</span><span class="ct">${esc(sub)}${e.id.startsWith('rc-')?'<span class="tag">ประจำ</span>':''}</span></span>
+        <span class="it"><span class="nm">${esc(title)}</span><span class="ct"><span class="m-date">${day} ${MON[m-1]} · </span>${esc(sub)}${e.id.startsWith('rc-')?'<span class="tag">ประจำ</span>':''}</span></span>
         <span class="num in${isIn?'':' void'}">${isIn?'+'+amt:''}</span>
         <span class="num out${isIn?' void':''}">${isIn?'':'−'+amt}</span>
         <span class="num bal">${money(balMap.get(e.id)||0)}</span>
@@ -499,43 +538,54 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     $('backup').disabled = !S.entries.length;
   }
 
-  function renderCats(){
-    const sums = new Map();
-    for (const e of S.entries) if (inMonth(e,S.ym) && e.type==='expense') sums.set(e.category,(sums.get(e.category)||0)+satang(e));
-    const rows = [...sums].sort((a,b)=>b[1]-a[1]);
-    if (!rows.length) { $('cats').innerHTML = `<p class="muted">เดือนนี้ยังไม่มีรายจ่าย</p>`; return; }
-    const total = rows.reduce((s,r)=>s+r[1],0), max = rows[0][1];
-    $('cats').innerHTML = rows.map(([c,v]) => `<button type="button" class="cat" data-cat="${esc(c)}" aria-pressed="${S.cat===c}">
-      <span class="cat-line"><span>${esc(c)}</span><span class="fig">${money(v)} · ${Math.round(v/total*100)}%</span></span>
-      <span class="track"><span class="fill" style="width:${(v/max*100).toFixed(1)}%"></span></span></button>`).join('');
-  }
-
   function renderBudget(){
-    const rows = Object.entries(budgets.map).sort((a,b) => b[1]-a[1]);
+    const spent = new Map();
+    for (const e of S.entries) if (inMonth(e,S.ym) && e.type==='expense') spent.set(e.category,(spent.get(e.category)||0)+satang(e));
+    const budgeted = Object.keys(budgets.map).length > 0;
     $('bEdit').hidden = S.editBudget;
     $('budget').hidden = S.editBudget;
     $('budgetForm').hidden = !S.editBudget;
-    $('bEdit').textContent = rows.length ? 'แก้ไขงบ' : 'ตั้งงบ';
+    $('bEdit').textContent = budgeted ? 'แก้ไขงบ' : 'ตั้งงบ';
     if (S.editBudget) return;
-    if (!rows.length) { $('budget').innerHTML = `<p class="muted">ยังไม่ได้ตั้งงบ ตั้งงบแต่ละหมวดเพื่อดูว่าเดือนนี้เหลือใช้เท่าไหร่</p>`; return; }
-    const spent = new Map();
-    for (const e of S.entries) if (inMonth(e,S.ym) && e.type==='expense') spent.set(e.category,(spent.get(e.category)||0)+satang(e));
+    const cats = [...new Set([...Object.keys(budgets.map), ...spent.keys()])]
+      .sort((a,b) => (spent.get(b)||0)-(spent.get(a)||0) || a.localeCompare(b,'th'));
+    if (!cats.length) { $('budget').innerHTML = `<p class="muted">ยังไม่มีรายจ่ายเดือนนี้ กด “ตั้งงบ” เพื่อกำหนดว่าแต่ละหมวดใช้ได้เท่าไหร่</p>`; return; }
     let totalB = 0, totalS = 0, over = 0;
-    const html = rows.map(([c,baht]) => {
-      const b = Math.round(baht*100), u = spent.get(c)||0, pct = u/b*100, left = b-u;
+    const html = cats.map(c => {
+      const u = spent.get(c)||0;
+      if (budgets.map[c] === undefined) return `<button type="button" class="bud" data-cat="${esc(c)}"><span class="cat-line"><span>${esc(c)}</span><span class="fig">${money(u)}</span></span></button>`;
+      const b = Math.round(budgets.map[c]*100), pct = u/b*100, left = b-u;
       totalB += b; totalS += u; if (left < 0) over++;
       const cls = left < 0 ? 'b-over' : pct >= 80 ? 'b-near' : 'b-ok';
-      const note = left < 0 ? `เกินงบ ${money(-left)}` : pct >= 80 ? `ใกล้เต็ม เหลือ ${money(left)}` : `เหลือ ${money(left)}`;
-      return `<div class="bud"><span class="cat-line"><span>${esc(c)}</span><span class="fig">${money(u)} / ${money(b)}</span></span>
+      const note = left < 0 ? `เกินงบ ${money(-left)}` : left === 0 ? 'ใช้ครบงบแล้ว' : pct >= 80 ? `ใกล้เต็ม เหลือ ${money(left)}` : `เหลือ ${money(left)}`;
+      return `<button type="button" class="bud" data-cat="${esc(c)}"><span class="cat-line"><span>${esc(c)}</span><span class="fig">${money(u)} / ${money(b)}</span></span>
         <span class="track"><span class="fill ${cls}" style="width:${Math.min(100,pct).toFixed(1)}%"></span></span>
-        <span class="bud-note${left<0?' over':''}">${note}</span></div>`;
+        <span class="bud-note${left<0?' over':''}">${note}</span></button>`;
     }).join('');
     const left = totalB-totalS;
-    const head = left < 0 ? `เกินงบรวม <b class="fig">${money(-left)}</b> จาก <b class="fig">${money(totalB)}</b>` : `เหลือ <b class="fig">${money(left)}</b> จากงบรวม <b class="fig">${money(totalB)}</b>`;
-    $('budget').innerHTML = `<p class="bud-sum">${head}${over ? ` · ${over} หมวดเกินงบ` : ''}</p>${html}`;
+    const head = !budgeted ? '' : left < 0 ? `<p class="bud-sum">เกินงบรวม <b class="fig">${money(-left)}</b> จาก <b class="fig">${money(totalB)}</b>${over ? ` · ${over} หมวดเกินงบ` : ''}</p>`
+      : `<p class="bud-sum">เหลือ <b class="fig">${money(left)}</b> จากงบรวม <b class="fig">${money(totalB)}</b>${over ? ` · ${over} หมวดเกินงบ` : ''}</p>`;
+    $('budget').innerHTML = head + html;
+  }
+  function renderSummary(){
+    const {i,o} = totals(S.ym), prev = totals(shiftYm(S.ym,-1));
+    $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sNet').textContent = money(i-o);
+    const diff = o - prev.o;
+    $('sCompare').textContent = !prev.o ? '' : diff === 0 ? 'จ่ายเท่ากับเดือนก่อน' : `จ่าย${diff>0?'มากกว่า':'น้อยกว่า'}เดือนก่อน ${money(Math.abs(diff))} บาท`;
+    $('sTable').innerHTML = Array.from({length:6},(_,n) => shiftYm(S.ym,-n)).map(ym => {
+      const t = totals(ym), [y,m] = ym.split('-');
+      return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.i-t.o)}</td></tr>`;
+    }).join('');
+  }
+  function setTab(t){
+    S.tab = t;
+    for (const [k,id] of [['budget','tab-budget'],['summary','tab-summary'],['list','tab-list']]) $(id).hidden = k !== t;
+    document.querySelectorAll('.tabs [data-tab]').forEach(b => { if (b.dataset.tab === t) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+    try { localStorage.setItem('ledger-tab-v1', t); } catch {}
+    scrollTo(0,0);
   }
   function renderRecurring(){
-    if (!recurring.length) { $('recurList').innerHTML = `<p class="muted">ยังไม่มีรายการประจำ เลือก “ทำซ้ำทุกเดือน” ตอนเพิ่มรายการ เช่น เงินเดือนหรือค่าเช่า</p>`; return; }
+    if (!recurring.length) { $('recurList').innerHTML = `<p class="muted">ติ๊ก “ทำซ้ำทุกเดือน” ตอนเพิ่มรายการ เช่น เงินเดือนหรือค่าเช่า</p>`; return; }
     $('recurList').innerHTML = [...recurring].sort((a,b) => a.day-b.day).map(t => {
       const isIn = t.type === 'income', amt = money(Math.round(t.amount*100));
       return `<div class="rrow"><span class="it"><span class="nm">${esc(t.note || t.category)}</span><span class="ct">ทุกวันที่ ${t.day} · ${esc(t.category)}</span></span>
@@ -641,7 +691,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const balMap = new Map(); let run = 0;
     for (const e of sorted()) { run += signed(e); balMap.set(e.id,run); }
     const open = renderHeader();
-    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderRecurring(); renderCats(); renderTrend(); renderCloud();
+    renderFilter(); renderRows(balMap,open); renderNotice(); renderBudget(); renderRecurring(); renderSummary(); renderTrend(); renderCloud();
     $('save').disabled = S.saving;
   }
 
@@ -818,7 +868,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   $('restore').onclick = () => $('restoreFile').click();
   $('restoreFile').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if (f) restore(f); };
   $('rows').onclick = e => { const b = e.target.closest('button.row'); if (!b) return; const r = S.entries.find(x => x.id === b.dataset.id); if (r) startEdit(r); };
-  $('cats').onclick = e => { const b = e.target.closest('.cat'); if (!b) return; S.cat = S.cat === b.dataset.cat ? '' : b.dataset.cat; render(); };
+  $('budget').onclick = e => { const b = e.target.closest('.bud'); if (!b) return; S.cat = b.dataset.cat; S.q = ''; $('q').value = ''; setTab('list'); render(); };
+  document.querySelector('.tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); };
   $('trend').onclick = e => { const ym = e.target.dataset?.ym; if (ym) goMonth(ym); };
   $('trend').onpointermove = e => { const ym = e.target.dataset?.ym; if (ym && ym !== hoverYm) { hoverYm = ym; readout(ym); } };
   $('trend').onpointerleave = () => { hoverYm = null; readout(S.ym); };
@@ -1041,6 +1092,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
   resetSlip();
   render();
+  let savedTab = 'list'; try { savedTab = localStorage.getItem('ledger-tab-v1') || 'list'; } catch {}
+  setTab(['list','budget','summary'].includes(savedTab) ? savedTab : 'list');
   refresh();
 })();
 </script>
