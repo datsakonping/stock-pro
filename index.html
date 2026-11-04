@@ -369,9 +369,11 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
         <h2 id="sumH">ภาพรวมเดือนนี้</h2>
         <dl class="sum-grid">
           <div><dt>ยอดยกมา</dt><dd id="tOpen" class="fig">0.00</dd></div>
+          <div><dt>คงเหลือ</dt><dd id="sEnd" class="fig">0.00</dd></div>
           <div><dt>รับ</dt><dd id="sIn" class="fig">0.00</dd></div>
           <div><dt>จ่าย</dt><dd id="sOut" class="fig">0.00</dd></div>
-          <div><dt>รับลบจ่าย</dt><dd id="sNet" class="fig">0.00</dd></div>
+          <div><dt>ลงทุน</dt><dd id="sInv" class="fig">0.00</dd></div>
+          <div><dt>เงินเปลี่ยนแปลงสุทธิ</dt><dd id="sNet" class="fig">0.00</dd></div>
         </dl>
         <p id="sCompare" class="muted"></p>
       </section>
@@ -390,7 +392,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     </section>
       <section class="chart" aria-labelledby="tblH">
         <h2 id="tblH">ตัวเลขรายเดือน</h2>
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">เดือน</th><th scope="col">รับ</th><th scope="col">จ่าย</th><th scope="col">รับลบจ่าย</th></tr></thead><tbody id="sTable"></tbody></table></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th scope="col">เดือน</th><th scope="col">รับ</th><th scope="col">จ่าย</th><th scope="col">ลงทุน</th></tr></thead><tbody id="sTable"></tbody></table></div>
       </section>
     </div>
   </div>
@@ -494,7 +496,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   const CATS = {
-    expense:['อาหาร','เดินทาง','ค่าเช่า/ที่พัก','ค่าน้ำค่าไฟ','โทรศัพท์/อินเทอร์เน็ต','ของใช้ในบ้าน','สุขภาพ','ช้อปปิ้ง','บันเทิง','การศึกษา','ผ่อนชำระ','เงินออม','อื่นๆ'],
+    expense:['อาหาร','เดินทาง','ค่าเช่า/ที่พัก','ค่าน้ำค่าไฟ','โทรศัพท์/อินเทอร์เน็ต','ของใช้ในบ้าน','สุขภาพ','ช้อปปิ้ง','บันเทิง','การศึกษา','ผ่อนชำระ','เงินออม','ลงทุน','อื่นๆ'],
     income:['เงินเดือน','รายได้เสริม','ขายของ','โบนัส','ดอกเบี้ย/เงินปันผล','เงินตั้งต้น','อื่นๆ'],
   };
   const NEW_CAT = '__new__';
@@ -515,7 +517,10 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   const sorted = () => [...S.entries].sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : (a.createdAt||0)-(b.createdAt||0));
   const signed = e => e.type === 'income' ? satang(e) : -satang(e);
   const inMonth = (e,ym) => e.date.slice(0,7) === ym;
-  const totals = ym => { let i=0,o=0; for (const e of S.entries) if (inMonth(e,ym)) { if (e.type==='income') i+=satang(e); else o+=satang(e); } return {i,o}; };
+  const isInvestCat = c => String(c).includes('ลงทุน');
+  const isInvest = e => e.type === 'expense' && isInvestCat(e.category);
+  const isSpend = e => e.type === 'expense' && !isInvestCat(e.category);
+  const totals = ym => { let i=0,o=0,inv=0; for (const e of S.entries) if (inMonth(e,ym)) { if (e.type==='income') i+=satang(e); else if (isInvestCat(e.category)) inv+=satang(e); else o+=satang(e); } return {i,o,inv}; };
 
   function toast(msg){
     const t = $('toast'); t.textContent = msg; t.hidden = false;
@@ -527,7 +532,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const {ym} = S, start = ym + '-01';
     let open = 0;
     for (const e of S.entries) if (e.date < start) open += signed(e);
-    const {i,o} = totals(ym), end = open + i - o;
+    const {i,o,inv} = totals(ym), end = open + i - o - inv;
     $('mLabel').textContent = monthName(ym);
     $('heroLabel').textContent = `คงเหลือสิ้นเดือน${MONTHS[+ym.slice(5)-1]}`;
     $('heroNum').textContent = money(end);
@@ -596,14 +601,14 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
 
   function renderBudget(){
     const spent = new Map();
-    for (const e of S.entries) if (inMonth(e,S.ym) && e.type==='expense') spent.set(e.category,(spent.get(e.category)||0)+satang(e));
-    const budgeted = Object.keys(budgets.map).length > 0;
+    for (const e of S.entries) if (inMonth(e,S.ym) && isSpend(e)) spent.set(e.category,(spent.get(e.category)||0)+satang(e));
+    const budgetCats = Object.keys(budgets.map).filter(c => !isInvestCat(c)), budgeted = budgetCats.length > 0;
     $('bEdit').hidden = S.editBudget;
     $('budget').hidden = S.editBudget;
     $('budgetForm').hidden = !S.editBudget;
     $('bEdit').textContent = budgeted ? 'แก้ไขงบ' : 'ตั้งงบ';
     if (S.editBudget) return;
-    const cats = [...new Set([...Object.keys(budgets.map), ...spent.keys()])]
+    const cats = [...new Set([...budgetCats, ...spent.keys()])]
       .sort((a,b) => (spent.get(b)||0)-(spent.get(a)||0) || a.localeCompare(b,'th'));
     if (!cats.length) { $('budget').innerHTML = `<p class="muted">ยังไม่มีรายจ่ายเดือนนี้ กด “ตั้งงบ” เพื่อกำหนดว่าแต่ละหมวดใช้ได้เท่าไหร่</p>`; return; }
     let totalB = 0, totalS = 0, over = 0;
@@ -625,16 +630,17 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     $('budget').innerHTML = head + html;
   }
   function renderSummary(){
-    const {i,o} = totals(S.ym), day = S.ym === currentYm() ? +todayStr().slice(8) : 31;
+    const {i,o,inv} = totals(S.ym), day = S.ym === currentYm() ? +todayStr().slice(8) : 31;
     const sameDay = ymd => +ymd.slice(8) <= day;
-    const spentThis = S.entries.filter(e => inMonth(e,S.ym) && e.type==='expense' && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
-    const prevYm = shiftYm(S.ym,-1), prevSpent = S.entries.filter(e => inMonth(e,prevYm) && e.type==='expense' && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
-    $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sNet').textContent = money(i-o);
+    const spentThis = S.entries.filter(e => inMonth(e,S.ym) && isSpend(e) && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
+    const prevYm = shiftYm(S.ym,-1), prevSpent = S.entries.filter(e => inMonth(e,prevYm) && isSpend(e) && sameDay(e.date)).reduce((n,e) => n+satang(e),0);
+    let open = 0; for (const e of S.entries) if (e.date < S.ym + '-01') open += signed(e);
+    $('sEnd').textContent = money(open+i-o-inv); $('sIn').textContent = money(i); $('sOut').textContent = money(o); $('sInv').textContent = money(inv); $('sNet').textContent = money(i-o-inv);
     const diff = spentThis - prevSpent, period = S.ym === currentYm() ? 'ช่วงเดียวกันของเดือนก่อน' : 'เดือนก่อน';
     $('sCompare').textContent = !prevSpent ? '' : diff === 0 ? `จ่ายเท่ากับ${period}` : `จ่าย${diff>0?'มากกว่า':'น้อยกว่า'}${period} ${money(Math.abs(diff))} บาท`;
     $('sTable').innerHTML = Array.from({length:6},(_,n) => shiftYm(S.ym,-n)).map(ym => {
       const t = totals(ym), [y,m] = ym.split('-');
-      return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.i-t.o)}</td></tr>`;
+      return `<tr${ym===S.ym?' class="now"':''}><td>${MON[+m-1]} ${String(be(y)).slice(2)}</td><td>${money(t.i)}</td><td>${money(t.o)}</td><td>${money(t.inv)}</td></tr>`;
     }).join('');
   }
   function aiSuggestions(){
@@ -670,9 +676,9 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     let balance = 0; for (const e of S.entries) balance += signed(e);
     const months = Array.from({length:3},(_,n) => shiftYm(currentYm(),-n)).map(ym => {
       const t = totals(ym), byCategory = {};
-      for (const e of S.entries) if (inMonth(e,ym) && e.type==='expense') byCategory[e.category] = (byCategory[e.category]||0) + Number(e.amount);
+      for (const e of S.entries) if (inMonth(e,ym) && isSpend(e)) byCategory[e.category] = (byCategory[e.category]||0) + Number(e.amount);
       for (const k of Object.keys(byCategory)) byCategory[k] = Math.round(byCategory[k]*100)/100;
-      return { month:ym, income:t.i/100, expense:t.o/100, expenseByCategory:byCategory };
+      return { month:ym, income:t.i/100, expense:t.o/100, invested:t.inv/100, expenseByCategory:byCategory };
     });
     return { balance:balance/100, months, monthlyBudgets:budgets.map, recurringCount:recurring.length };
   }
@@ -729,6 +735,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     'การศึกษา':['หนังสือ','คอร์ส','ค่าเรียน','ค่าเทอม'],
     'ผ่อนชำระ':['ผ่อน','ค่างวด','บัตรเครดิต'],
     'เงินออม':['ออม','เก็บเงิน','ฝากประจำ'],
+    'ลงทุน':['ลงทุน','หุ้น','กองทุน','คริปโต'],
     'เงินเดือน':['เงินเดือน'], 'โบนัส':['โบนัส'], 'ขายของ':['ขาย'], 'ดอกเบี้ย/เงินปันผล':['ดอกเบี้ย','ปันผล'], 'รายได้เสริม':['ฟรีแลนซ์','ค่าจ้าง','งานเสริม'],
   };
   function suggestCategory(note, type){
@@ -780,7 +787,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
   function forecast(){
     const ym = currentYm(), today = todayStr(), day = +today.slice(8), total = daysIn(ym);
     if (S.ym !== ym || day < 5) return null;
-    const variable = S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.date<=today && noRecurring(e));
+    const variable = S.entries.filter(e => inMonth(e,ym) && isSpend(e) && e.date<=today && noRecurring(e));
     if (variable.length < 3) return null;
     let upIn = 0, upOut = 0, open = 0;
     for (const e of S.entries) if (e.date < ym + '-01') open += signed(e);
@@ -789,19 +796,20 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       if (date <= today || date < t.start || tombs[`rc-${t.id}-${ym}`]) continue;
       if (t.type === 'income') upIn += Math.round(t.amount*100); else upOut += Math.round(t.amount*100);
     }
-    const {i,o} = totals(ym), rest = dailyRate(variable,day) * (total-day);
-    return { balance:open+i-o+upIn-upOut-rest, spend:o+upOut+rest };
+    const {i,o,inv} = totals(ym), rest = dailyRate(variable,day) * (total-day);
+    return { balance:open+i-o-inv+upIn-upOut-rest, spend:o+upOut+rest };
   }
   function insights(){
     const out = [], ym = S.ym, isNow = ym === currentYm(), today = todayStr(), day = isNow ? +today.slice(8) : 31;
     const f = forecast();
     if (f) out.push({ tone:f.balance < 0 ? 'bad' : 'info', text:`ถ้าใช้จ่ายแบบนี้ สิ้นเดือนน่าจะ${f.balance < 0 ? 'ติดลบ' : 'เหลือ'}ประมาณ ${money(Math.abs(roundBaht(f.balance)))} บาท` });
     const spent = new Map(), prevSpent = new Map(), prevYm = shiftYm(ym,-1);
-    for (const e of S.entries) if (e.type==='expense' && +e.date.slice(8) <= day) {
+    for (const e of S.entries) if (isSpend(e) && +e.date.slice(8) <= day) {
       if (inMonth(e,ym)) spent.set(e.category,(spent.get(e.category)||0)+satang(e));
       else if (inMonth(e,prevYm)) prevSpent.set(e.category,(prevSpent.get(e.category)||0)+satang(e));
     }
     for (const [c,baht] of Object.entries(budgets.map)) {
+      if (isInvestCat(c)) continue;
       const left = Math.round(baht*100) - (S.entries.filter(e => inMonth(e,ym) && e.type==='expense' && e.category===c).reduce((n,e) => n+satang(e),0));
       if (left < 0) out.push({ tone:'bad', text:`${c} เกินงบแล้ว ${money(-left)} บาท` });
       else { const hit = budgetHitDay(c,left); if (hit) out.push({ tone:'warn', text:`${c} อาจเกินงบวันที่ ${hit}` }); }
@@ -813,7 +821,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
       .forEach(x => out.push({ tone:x.d > 0 ? 'warn' : 'info', text:`${x.c}${x.d>0?'เพิ่มขึ้น':'ลดลง'} ${Math.round(Math.abs(x.d)/x.p*100)}% จาก${period}` }));
     const month = S.entries.filter(e => inMonth(e,ym) && noRecurring(e));
     let unusual = 0;
-    for (const e of month.filter(x => x.type==='expense').sort((a,b) => satang(b)-satang(a))) {
+    for (const e of month.filter(isSpend).sort((a,b) => satang(b)-satang(a))) {
       if (unusual >= 2) break;
       const hist = S.entries.filter(x => x.type==='expense' && x.category===e.category && x.id!==e.id && noRecurring(x)).map(satang);
       if (hist.length >= 5 && satang(e) > median(hist)*3 && satang(e)-median(hist) >= 20000) { unusual++; out.push({ tone:'warn', text:`${e.note || e.category} ${money(satang(e))} บาท สูงกว่าปกติของหมวด${e.category}` }); }
@@ -835,7 +843,7 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     const amount = Math.round(doc.amount*100);
     const dup = S.entries.find(e => e.type===doc.type && satang(e)===amount && e.category===doc.category && e.date===doc.date);
     if (dup) return `มีรายการ ${money(amount)} บาท หมวด${doc.category} ในวันเดียวกันแล้ว อาจจดซ้ำ`;
-    if (doc.type === 'expense') {
+    if (doc.type === 'expense' && !isInvestCat(doc.category)) {
       const hist = S.entries.filter(e => e.type==='expense' && e.category===doc.category && noRecurring(e)).map(satang);
       if (hist.length >= 5) { const med = median(hist); if (amount > med*3 && amount-med >= 20000) return `ยอดนี้สูงกว่าปกติของหมวด${doc.category} ซึ่งมักอยู่ที่ประมาณ ${money(med)} บาท`; }
     }
@@ -900,8 +908,8 @@ label{display:grid;gap:3px;font-size:.88rem;color:var(--muted);min-width:0}
     toast('หยุดรายการประจำแล้ว รายการที่ลงไปแล้วยังอยู่');
   }
   function openBudget(){
-    const custom = S.entries.filter(e => e.type==='expense').map(e => e.category);
-    const cats = [...new Set([...CATS.expense, ...custom, ...Object.keys(budgets.map)])];
+    const custom = S.entries.filter(isSpend).map(e => e.category);
+    const cats = [...new Set([...CATS.expense, ...custom, ...Object.keys(budgets.map)])].filter(c => !isInvestCat(c));
     $('budgetFields').innerHTML = cats.map((c,i) => `<label class="brow" for="b${i}"><span>${esc(c)}</span>
       <input id="b${i}" data-cat="${esc(c)}" inputmode="decimal" autocomplete="off" placeholder="-" value="${budgets.map[c] ?? ''}"></label>`).join('');
     $('budgetErr').hidden = true;
